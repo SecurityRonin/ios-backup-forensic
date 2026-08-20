@@ -41,4 +41,43 @@ pub enum Error {
     /// which, rather than receiving a default-constructed keybag.
     #[error("keybag is missing the required {0} field")]
     MissingField(&'static str),
+
+    /// A key width AES does not define. Carries the offending width.
+    #[error("unsupported AES key width {0} bytes (expected 16, 24 or 32)")]
+    UnsupportedKeyWidth(usize),
+
+    /// A wrapped key was not a whole number of 64-bit semiblocks, or was too
+    /// short to be an RFC 3394 wrapping. Carries the offending length.
+    #[error("wrapped key of {0} bytes is not a valid RFC 3394 wrapping (need a multiple of 8, at least 24)")]
+    BadWrappedKeyLength(usize),
+
+    /// The RFC 3394 integrity check failed: the unwrapped value did not carry
+    /// the expected `A6A6A6A6A6A6A6A6` prefix.
+    ///
+    /// For a backup this almost always means the key-encrypting key is wrong,
+    /// which means the **password** is wrong. It never means "here is a key
+    /// that might work" — a wrapped key either verifies or it does not.
+    #[error("key unwrap failed the RFC 3394 integrity check (wrong key)")]
+    KeyUnwrapFailed,
+
+    /// No class key in the keybag could be unwrapped with the derived key.
+    ///
+    /// Distinct from an empty result: reporting zero recovered keys as success
+    /// would be refusal counted as zero, and the caller could not tell a wrong
+    /// password from a keybag that carries no passcode-wrapped class.
+    #[error("wrong backup password: no class key in the keybag could be unwrapped")]
+    WrongPassword,
+
+    /// A file declares a protection class the keybag has no key for.
+    #[error("no class key for protection class {0}")]
+    NoKeyForClass(u32),
+
+    /// A CBC ciphertext was not a whole number of 16-byte blocks. Carries the
+    /// offending length.
+    #[error("ciphertext of {0} bytes is not a whole number of AES blocks")]
+    BadCiphertextLength(usize),
+
+    /// An IV that was not 16 bytes. Carries the offending length.
+    #[error("IV must be 16 bytes, got {0}")]
+    BadIvLength(usize),
 }
