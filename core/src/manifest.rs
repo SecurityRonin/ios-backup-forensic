@@ -1,4 +1,4 @@
-//! `Manifest.db` — the SQLite index of every captured file.
+//! `Manifest.db` — the `SQLite` index of every captured file.
 //!
 //! One `Files` row per file, directory and symlink:
 //!

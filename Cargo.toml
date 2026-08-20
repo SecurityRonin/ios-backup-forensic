@@ -82,3 +82,8 @@ too_many_lines           = { level = "allow", priority = 1 }
 items_after_statements   = { level = "allow", priority = 1 }
 similar_names            = { level = "allow", priority = 1 }
 manual_let_else          = { level = "allow", priority = 1 }
+# An analyzer's severity/category map is a table of independent decisions that
+# happen to share a level today. Collapsing two arms because they agree now
+# couples them: re-grading one kind would force the pair apart again, and the
+# per-kind rationale in the comments would have nowhere to live.
+match_same_arms          = { level = "allow", priority = 1 }

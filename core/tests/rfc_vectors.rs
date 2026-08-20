@@ -2,7 +2,7 @@
 //! a third party authored both the artifact and the answer key).
 //!
 //! These pin *our usage* — key widths, byte order, which digest goes with which
-//! salt — not the RustCrypto crates themselves. That is where the mistakes in a
+//! salt — not the `RustCrypto` crates themselves. That is where the mistakes in a
 //! keybag implementation actually live: every primitive below is individually
 //! correct in every wrong implementation of this format too.
 //!

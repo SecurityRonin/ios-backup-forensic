@@ -98,10 +98,16 @@ fn a_manifest_row_whose_blob_is_absent_is_reported() {
         "one finding per file row with no blob; got {:?}",
         codes(&findings)
     );
-    assert!(
-        missing[0].evidence.iter().any(|e| e.value.contains('-')),
-        "the finding must carry the fileID it is about"
-    );
+    // The finding must carry the fileID verbatim — a full 40-character hex
+    // identifier, never elided. Without it the reader cannot locate the row
+    // the finding is about.
+    let file_id = missing[0]
+        .evidence
+        .iter()
+        .find(|e| e.field == "fileID")
+        .expect("the finding records a fileID");
+    assert_eq!(file_id.value.len(), 40, "got: {}", file_id.value);
+    assert!(file_id.value.chars().all(|c| c.is_ascii_hexdigit()));
 }
 
 #[test]

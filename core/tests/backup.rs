@@ -42,9 +42,7 @@ fn encrypted() -> Backup {
 #[test]
 fn an_unencrypted_backup_reports_itself_unencrypted() {
     assert!(!plain().is_encrypted());
-    assert!(Backup::open(&fixture("encrypted-backup"))
-        .map(|b| b.is_encrypted())
-        .unwrap_or(true));
+    assert!(Backup::open(&fixture("encrypted-backup")).map_or(true, |b| b.is_encrypted()));
 }
 
 #[test]

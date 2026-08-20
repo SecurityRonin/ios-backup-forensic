@@ -128,7 +128,7 @@ pub enum Error {
     #[error("no per-file encryption key recorded for {0}")]
     NoFileKey(String),
 
-    /// `Manifest.db` will not read as a SQLite database. In an encrypted backup
+    /// `Manifest.db` will not read as a `SQLite` database. In an encrypted backup
     /// this is what a wrong manifest key looks like.
     #[error("Manifest.db is not a readable SQLite database: {0:?}")]
     Sqlite(sqlite_core::Error),

@@ -1,6 +1,6 @@
 //! The backup keybag's cryptography, and nothing else.
 //!
-//! Every primitive here comes from RustCrypto — audited, and never hand-rolled.
+//! Every primitive here comes from `RustCrypto` — audited, and never hand-rolled.
 //! A "simplified" stand-in that returned plausible-but-wrong bytes would
 //! **fabricate evidence**, so there is no fallback path in this module: a
 //! failure is always an error, never a best-effort result.
