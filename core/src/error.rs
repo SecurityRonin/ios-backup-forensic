@@ -80,4 +80,102 @@ pub enum Error {
     /// An IV that was not 16 bytes. Carries the offending length.
     #[error("IV must be 16 bytes, got {0}")]
     BadIvLength(usize),
+
+    /// The directory holds no `Manifest.plist`, so it is not a backup.
+    ///
+    /// Named rather than generic: "not a backup" sends the examiner looking for
+    /// a corrupt image, while "no Manifest.plist here" usually means the path
+    /// points one level above or below the UDID directory.
+    #[error("{path} is not an iOS backup: no {missing}")]
+    NotABackup {
+        /// The file whose absence settled it.
+        missing: String,
+        /// The directory that was examined.
+        path: String,
+    },
+
+    /// A property list is present but will not parse.
+    #[error("{file} is not a readable property list: {detail}")]
+    BadPlist {
+        /// Which plist.
+        file: String,
+        /// What the parser said.
+        detail: String,
+    },
+
+    /// The backup is encrypted and no password was offered.
+    ///
+    /// Deliberately distinct from [`Self::WrongPassword`]: one means "ask the
+    /// examiner", the other means "the examiner already answered, wrongly".
+    #[error("this backup is encrypted — a password is required to read it")]
+    PasswordRequired,
+
+    /// `Manifest.plist` says the backup is encrypted but carries no
+    /// `BackupKeyBag`, so there is nothing to derive keys from.
+    #[error("backup is marked encrypted but carries no BackupKeyBag")]
+    MissingKeyBag,
+
+    /// `Manifest.plist` carries no `ManifestKey`, so `Manifest.db` cannot be
+    /// decrypted even with the right password.
+    #[error("backup is marked encrypted but carries no ManifestKey")]
+    MissingManifestKey,
+
+    /// A read was attempted on an encrypted backup that was never unlocked.
+    #[error("backup is encrypted and has not been unlocked")]
+    NotUnlocked,
+
+    /// A file in an encrypted backup records no per-file key.
+    #[error("no per-file encryption key recorded for {0}")]
+    NoFileKey(String),
+
+    /// `Manifest.db` will not read as a SQLite database. In an encrypted backup
+    /// this is what a wrong manifest key looks like.
+    #[error("Manifest.db is not a readable SQLite database: {0:?}")]
+    Sqlite(sqlite_core::Error),
+
+    /// `Manifest.db` has no `Files` table.
+    #[error("Manifest.db has no Files table")]
+    ManifestTableMissing,
+
+    /// The `Files` table lacks a column this reader needs. Both the wanted
+    /// column and the ones actually present are named.
+    #[error("Files table has no {column} column (found: {found})")]
+    ManifestSchema {
+        /// The column that was required.
+        column: String,
+        /// The columns the table actually declares.
+        found: String,
+    },
+
+    /// A `Files.file` blob is not a readable `NSKeyedArchiver` archive.
+    #[error("file metadata is not a readable NSKeyedArchiver archive: {0}")]
+    BadFileMetadata(String),
+
+    /// The manifest names a content blob that is not on disk. Carries the
+    /// `fileID`, which is also the blob's filename.
+    #[error("content blob {0} named by the manifest is not present in the backup")]
+    BlobMissing(String),
+
+    /// A read was attempted on an entry that has no content.
+    #[error("{path} is a {kind}, not a file with content")]
+    NotAFile {
+        /// `domain-relativePath` of the entry.
+        path: String,
+        /// What it actually is.
+        kind: String,
+    },
+
+    /// No controlling terminal to prompt on.
+    #[error("no controlling terminal available to prompt for a password")]
+    NoTerminal,
+
+    /// An I/O failure, with the path that caused it.
+    #[error("I/O error reading {path}: {source}")]
+    Io {
+        /// The path being read.
+        path: String,
+        /// The underlying failure.
+        #[source]
+        source: std::io::Error,
+    },
 }

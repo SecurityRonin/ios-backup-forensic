@@ -21,8 +21,17 @@
 
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
 
+pub mod backup;
+pub mod credentials;
 pub mod crypto;
 pub mod error;
 pub mod keybag;
+pub mod manifest;
+pub mod metadata;
+pub mod nskeyed;
 
+pub use backup::Backup;
+pub use credentials::{Credentials, Password};
 pub use error::Error;
+pub use manifest::{BackupFile, FileKind};
+pub use metadata::BackupMetadata;

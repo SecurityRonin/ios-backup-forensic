@@ -82,7 +82,7 @@ fn records_domain_relative_path_and_size() {
     assert_eq!(sms.domain, "HomeDomain");
     assert_eq!(sms.relative_path, "Library/SMS/sms.db");
     assert_eq!(sms.kind, FileKind::File);
-    assert_eq!(sms.size, 315); // 15-byte header + 300 'A's
+    assert_eq!(sms.size, 316); // 16-byte "SQLite format 3\0" header + 300 'A's
 }
 
 // ------------------------------------------------------------ reading bytes
@@ -97,7 +97,7 @@ fn reads_an_unencrypted_file_verbatim() {
 
     let bytes = backup.read(&sms).unwrap();
     assert!(bytes.starts_with(b"SQLite format 3\0"));
-    assert_eq!(bytes.len(), 315);
+    assert_eq!(bytes.len(), 316);
 }
 
 #[test]
