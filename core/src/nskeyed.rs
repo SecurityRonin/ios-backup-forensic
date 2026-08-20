@@ -14,9 +14,22 @@
 use crate::error::Error;
 
 /// A parsed `NSKeyedArchiver` archive.
+///
+/// `Debug` reports the shape, not the contents: a `Files.file` archive holds a
+/// wrapped per-file key, and rendering the whole object graph into a log would
+/// put key material there.
 pub struct Archive {
     objects: Vec<plist::Value>,
     root: usize,
+}
+
+impl core::fmt::Debug for Archive {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Archive")
+            .field("objects", &self.objects.len())
+            .field("root", &self.root)
+            .finish_non_exhaustive()
+    }
 }
 
 impl Archive {

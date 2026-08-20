@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Only the repo-specific jobs at the bottom read these. A called workflow does
+# not inherit caller-level `env:`; the reusable workflow declares its own.
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  ci:
+    uses: SecurityRonin/fleet-ci/.github/workflows/rust-ci.yml@619094ad54edc586f5c2733358e00326b30790bd
+    with:
+      # This crate is pure Rust with no platform-specific paths, but nothing has
+      # been *shown* to pass on macOS or Windows yet. Gating on an untested
+      # matrix would be asserting a claim we have not measured.
+      os-matrix: false
+      # Both members declare rust-version "1.85", so the workflow derives the
+      # floor itself. `test` rather than a bare build: an MSRV job that only
+      # compiles does not prove the crate works on the floor it promises.
+      msrv-check: test
+      # Measured on this branch with the command the shared workflow runs:
+      #   cargo llvm-cov --workspace --all-features --summary-only
+      #   -> TOTAL lines 89.91%
+      # The floor is floor(measured) = 89: a regression backstop at today's real
+      # number, not a target nobody has met.
+      #
+      # ADR-0008 sets 100% for a *-core/*-forensic pair and this does not meet
+      # it. What is uncovered is named in docs/validation.md rather than left
+      # implicit — chiefly defensive arms in nskeyed and backup that need a
+      # malformed archive shape not yet in the corpus.
+      coverage-gate: floor
+      coverage-floor: 89
+      # This repo's own deny.toml.
+      deny-config-repo: ""
+      # Check the full-feature dependency graph, including the `vfs` feature.
+      deny-args: --all-features
+
+  # ---------------------------------------------------------------------------
+  # Repo-specific jobs.
+  # ---------------------------------------------------------------------------
+
+  # crates.io gates `description` + `license`, not README/LICENSE *files*. This
+  # asserts every publishable crate actually packages them, so a release cannot
+  # ship without them.
+  package:
+    name: Package completeness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+      - name: README + LICENSE packaged in every published crate
+        run: |
+          set -euo pipefail
+          pkgs=$(cargo metadata --no-deps --format-version 1 \
+            | python3 -c "import sys,json;[print(p['name']) for p in json.load(sys.stdin)['packages'] if p.get('publish') != []]")
+          for p in $pkgs; do
+            list=$(cargo package -p "$p" --list)
+            echo "$list" | grep -qx 'README.md' || { echo "::error::$p does not package README.md"; exit 1; }
+            echo "$list" | grep -q '^LICENSE'   || { echo "::error::$p does not package a LICENSE file"; exit 1; }
+            echo "✓ $p packages README.md + LICENSE"
+          done
+
+  # The fixtures are generated, so the generator and the committed bytes must not
+  # drift. Re-mint into a scratch directory and diff: a fixture nobody can
+  # reproduce is a fixture whose provenance record has quietly become fiction.
+  fixtures:
+    name: Fixtures reproduce from their generator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - run: pip install cryptography
+      - name: Re-mint and compare
+        run: |
+          set -euo pipefail
+          python3 tools/mint_encrypted_backup.py /tmp/enc
+          python3 tools/mint_encrypted_backup.py /tmp/plain --plain
+          # Manifest.plist embeds a Date, and Manifest.db is a SQLite file whose
+          # page padding is not byte-stable across sqlite3 builds. Compare the
+          # content blobs and the keybag, which are what the crypto tests read.
+          diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/enc tests/data/encrypted-backup
+          diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/plain tests/data/plain-backup
+          echo "✓ fixtures reproduce from tools/mint_encrypted_backup.py"
+
+  # A backup is untrusted, attacker-controllable input. This crate forbids
+  # unsafe outright (no mmap: a backup is a directory of small files read via
+  # std::fs), so the audit should report zero unsafe in our own code.
+  geiger:
+    name: Unsafe Audit (cargo-geiger)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+      - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
+      - run: cargo install cargo-geiger --locked
+      - run: cargo geiger 2>&1 || true

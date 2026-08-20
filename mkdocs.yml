@@ -1,0 +1,23 @@
+site_name: ios-backup-forensic
+site_description: Native, read-only reading of iOS device backups, encrypted ones included.
+site_url: https://securityronin.github.io/ios-backup-forensic/
+repo_url: https://github.com/SecurityRonin/ios-backup-forensic
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: black
+      accent: red
+nav:
+  - Home: index.md
+  - Purpose & Scope: PRD.md
+  - Validation: validation.md
+  - Decisions:
+      - Reader/analyzer split: decisions/0001-reader-analyzer-two-crate-split.md
+      - sqlite-core reads the manifest: decisions/0002-sqlite-core-reads-the-manifest.md
+      - Truncate, never strip padding: decisions/0003-no-padding-strip-truncate-to-manifest-size.md
+      - Failed unwrap is a wrong password: decisions/0004-unwrap-failure-is-a-wrong-password.md
+      - Credentials seam: decisions/0005-credentials-seam-for-mounting-tools.md
+      - Absent domains are unrated: decisions/0006-absent-domains-are-unrated.md
+  - Privacy: privacy.md
+  - Terms: terms.md

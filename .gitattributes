@@ -1,0 +1,12 @@
+# Byte-exact fixtures: git must never translate line endings in these.
+#
+# This is not belt-and-braces. `core.autocrlf` defaults to TRUE on GitHub's
+# windows-latest runners, and git decides text-vs-binary by scanning only the
+# FIRST 8000 BYTES for a NUL. An encrypted content blob is high-entropy bytes
+# with no guaranteed NUL — a 16-byte blob may well have none at all — so git is
+# free to classify it as text and rewrite every 0x0A to 0x0D 0x0A on checkout.
+#
+# The blob would then decrypt to garbage on Windows and only on Windows, while
+# the code is provably correct, and the failure would look like a decoder bug.
+tests/data/** -text
+fuzz/corpus/** -text
