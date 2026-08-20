@@ -76,18 +76,24 @@ def derive_backup_key(password: bytes, salt: bytes, dpsl: bytes) -> bytes:
 
 
 def aes_cbc_encrypt(key: bytes, data: bytes, iv: bytes = b"\x00" * 16) -> bytes:
-    """AES-CBC with the all-zero IV a backup uses, zero-padded to the block size.
+    """AES-CBC with the all-zero IV a backup uses, PKCS#7-padded.
 
-    A backup pads to the block boundary and records the true length in the
-    manifest; the reader truncates rather than stripping padding.
+    PKCS#7 and not zero padding: that is what iOS actually writes, confirmed
+    against the `iphone-dataprotection` reference implementation, whose
+    `removePadding` reads the final byte as a pad count (RFC 1423) and works on
+    real backups. A fixture padded with zeros would let a reader that mishandles
+    PKCS#7 pass.
+
+    Note this means a plaintext whose length is already a block multiple gains a
+    WHOLE extra block of padding, which is the case most likely to be got wrong.
     """
-    padding = (-len(data)) % 16
+    pad = 16 - (len(data) % 16)  # always 1..=16, never 0 — PKCS#7 adds a full block
     encryptor = Cipher(algorithms.AES(key), modes.CBC(iv)).encryptor()
-    return encryptor.update(data + b"\x00" * padding) + encryptor.finalize()
+    return encryptor.update(data + bytes([pad]) * pad) + encryptor.finalize()
 
 
 def file_metadata(size: int, protection_class: int, wrapped_key: bytes, relative_path: str,
-                  flags: int, mtime: int) -> bytes:
+                  flags: int, mtime: int, omit_size: bool = False) -> bytes:
     """The NSKeyedArchiver archive iOS stores in `Files.file`.
 
     The shape matters: `EncryptionKey` is a UID reference into `$objects`, and
@@ -118,6 +124,8 @@ def file_metadata(size: int, protection_class: int, wrapped_key: bytes, relative
         {"$classname": "MBFile", "$classes": ["MBFile", "NSObject"]},
         {"$classname": "NSMutableData", "$classes": ["NSMutableData", "NSData", "NSObject"]},
     ]
+    if omit_size:
+        del objects[1]["Size"]
     if wrapped_key == b"":
         # A directory carries no EncryptionKey at all.
         del objects[1]["ProtectionClass"]
@@ -157,6 +165,12 @@ def main() -> int:
         help="mint an UNENCRYPTED backup (IsEncrypted false, plaintext blobs)",
     )
     parser.add_argument("--seed", type=int, default=20260821)
+    parser.add_argument(
+        "--omit-size",
+        action="store_true",
+        help="mint the first file with NO Size key in its metadata, so a reader "
+             "that treats an absent size as zero returns an empty file",
+    )
     args = parser.parse_args()
 
     rng = random.Random(args.seed)
@@ -236,7 +250,7 @@ def main() -> int:
             "INSERT INTO Files VALUES (?,?,?,?,?)",
             (file_id, domain, relative_path, FLAG_FILE,
              file_metadata(len(payload), protection_class, wrapped, relative_path,
-                           FLAG_FILE, mtime)),
+                           FLAG_FILE, mtime, omit_size=args.omit_size and index == 0)),
         )
 
         blob_dir = out / file_id[:2]
