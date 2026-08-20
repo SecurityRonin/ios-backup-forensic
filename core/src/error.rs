@@ -165,6 +165,10 @@ pub enum Error {
         kind: String,
     },
 
+    /// A logical-view index that is out of range.
+    #[error("no entry at index {0}")]
+    NoSuchEntry(usize),
+
     /// No controlling terminal to prompt on.
     #[error("no controlling terminal available to prompt for a password")]
     NoTerminal,

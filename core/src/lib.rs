@@ -26,6 +26,7 @@ pub mod credentials;
 pub mod crypto;
 pub mod error;
 pub mod keybag;
+pub mod logical;
 pub mod manifest;
 pub mod metadata;
 pub mod nskeyed;
