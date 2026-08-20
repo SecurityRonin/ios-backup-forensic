@@ -66,11 +66,16 @@ mutation controls, and what is not validated at all:
 
 ## Robustness
 
-Input-fuzzed and panic-free on hostile input: `unsafe_code = "forbid"`,
+Structurally hardened against hostile input: `unsafe_code = "forbid"`,
 `unwrap_used`/`expect_used` denied in production code, and every integer read
 through [`safe-read`](https://crates.io/crates/safe-read)'s bounded readers. A
 length field is never trusted to be in range, and an unrecognised value is
 reported verbatim rather than hidden.
+
+**Not yet fuzzed.** ADR-0012 requires a fuzz target per parsed structure and a
+full-pipeline harness; neither exists yet, so the panic-free claim rests on the
+lint posture and hand-written malformed-input tests, not on a fuzzer having
+failed to break it. Tracked in [validation.md](docs/validation.md).
 
 A wrong password is always reported as a wrong password — never as an empty
 backup, never as a corrupt keybag, and never as partial garbage

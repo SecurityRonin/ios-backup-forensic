@@ -115,6 +115,35 @@ skipping. Supplying `IOS_BACKUP_PASSWORD` alongside `IOS_BACKUP_DIR` runs it; it
 asserts that `sms.db` decrypts to bytes beginning `SQLite format 3\0`, which a
 wrong key cannot produce.
 
+## Not fuzzed
+
+ADR-0012 requires one fuzz target per parsed structure — the keybag, the
+`NSKeyedArchiver` blob, the manifest reader — plus a full-pipeline
+`fuzz_forensic`. **None exists.** There is no `fuzz/` directory.
+
+What stands in its place is weaker and should not be mistaken for it: the lint
+posture (`unsafe_code = "forbid"`, `unwrap_used`/`expect_used` denied in
+production code), every integer read through `safe-read`'s bounded readers, and
+13 hand-written malformed-input cases in `core/tests/hostile_input.rs` plus 5 in
+`core/tests/keybag.rs`.
+
+Hand-written cases test the malformations someone thought of. That is the whole
+difference: no fuzzer has failed to break this parser, because none has been
+pointed at it. The panic-free property is **argued from construction, not
+demonstrated by search.**
+
+This is the largest outstanding gap in fleet compliance for these crates.
+
+## Coverage
+
+89.91% line coverage (`cargo llvm-cov --workspace --all-features`), against
+ADR-0008's 100% requirement for a `*-core`/`*-forensic` pair. The CI gate is a
+floor at the measured 89 — a regression backstop, not the standard met.
+
+Uncovered, by file: `nskeyed.rs` (76.7%) and `backup.rs` (82.6%) hold most of it,
+chiefly defensive arms needing malformed archive shapes not yet in the corpus —
+which is the same hole fuzzing would fill.
+
 ## What is not validated at all
 
 - **iTunes-for-Windows backups** — assumed identical, untested.
