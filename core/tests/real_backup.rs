@@ -199,7 +199,7 @@ fn a_real_backup_opens_and_reads_with_the_correct_password() {
     {
         let bytes = backup.read(&entry).expect("sms.db must decrypt");
         assert_eq!(
-            bytes.len() as u64,
+            Some(bytes.len() as u64),
             entry.size,
             "decrypted length must equal the manifest-recorded size"
         );

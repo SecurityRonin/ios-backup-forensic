@@ -84,8 +84,12 @@ impl LogicalView {
             .map(|entry| LogicalEntry {
                 path: projected_path(entry),
                 is_dir: !entry.kind.has_content(),
+                // A directory has no content length; a file whose size the
+                // manifest omitted reports 0 here because the projection's
+                // contract has no way to say "unknown". `Backup::files()` keeps
+                // the distinction for callers that need it.
                 size: if entry.kind.has_content() {
-                    entry.size
+                    entry.size.unwrap_or(0)
                 } else {
                     0
                 },

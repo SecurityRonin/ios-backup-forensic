@@ -41,8 +41,9 @@ pub enum AnomalyKind {
         domain: String,
         /// The row's path within that domain.
         relative_path: String,
-        /// The size the manifest records for the absent blob.
-        size: u64,
+        /// The size the manifest records for the absent blob, or `None` when
+        /// it records none.
+        size: Option<u64>,
     },
 
     /// A blob exists on disk that no `Files` row references.
@@ -154,11 +155,18 @@ impl Observation for AnomalyKind {
                 relative_path,
                 size,
             } => format!(
-                "Manifest row {domain}-{relative_path} (fileID {file_id}) records a \
-                 {size}-byte file, but no content blob is present at {}/{file_id}. \
+                "Manifest row {domain}-{relative_path} (fileID {file_id}) records {}, \
+                 but no content blob is present at {}/{file_id}. \
                  Consistent with an interrupted backup, a partial copy of the backup \
                  directory, or removal of the blob after the manifest was written.",
-                &file_id.get(..2).unwrap_or("??")
+                // Say what the manifest recorded, including when it recorded no
+                // size at all. Printing "0 bytes" for an absent size would state
+                // a figure the manifest never claimed.
+                match size {
+                    Some(bytes) => format!("a {bytes}-byte file"),
+                    None => "a file of unrecorded length".to_owned(),
+                },
+                file_id.get(..2).unwrap_or("??")
             ),
             Self::BlobOrphan { file_id } => format!(
                 "Content blob {file_id} is present on disk but no Manifest.db Files \
@@ -219,7 +227,12 @@ impl Observation for AnomalyKind {
                 row("fileID", file_id.clone()),
                 row("domain", domain.clone()),
                 row("relativePath", relative_path.clone()),
-                row("recordedSize", size.to_string()),
+                row(
+                    "recordedSize",
+                    // "(not recorded)" rather than "0": an exhibit that prints a
+                    // figure the manifest never carried is asserting one.
+                    size.map_or_else(|| "(not recorded)".to_owned(), |b| b.to_string()),
+                ),
             ],
             Self::BlobOrphan { file_id } => vec![row("fileID", file_id.clone())],
             Self::FileIdMismatch {

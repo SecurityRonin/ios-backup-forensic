@@ -73,6 +73,34 @@ Chosen to exercise the reader rather than to look realistic:
 | `CameraRollDomain` | `Media/DCIM/100APPLE/IMG_0001.JPG` | 768 bytes | Binary payload spanning many blocks. |
 | `HomeDomain` | `Library/SMS` | — | A directory row: metadata, no blob, no encryption key. |
 
+## `no-size-backup/` — synthetic, T3
+
+- **Generator command:**
+
+  ```bash
+  python3 tools/mint_encrypted_backup.py tests/data/no-size-backup --plain --omit-size
+  ```
+
+- Identical to `plain-backup/` except that the **first file's metadata carries no
+  `Size` key**.
+- **Consumed by:** `core/tests/missing_size.rs`.
+
+T3 and honestly so: we authored both the malformation and the expected result.
+It is a regression guard for a defect found by reading
+`datatags/mount-ios-backup`, not independent evidence — an absent `Size` was
+being read as `0`, truncating a real file to nothing while reporting success.
+
+### A note on padding
+
+The generator pads with **PKCS#7**, not zeros. That is what iOS actually writes,
+confirmed against the same reference implementation, whose `removePadding` reads
+the final byte as a pad count (RFC 1423) and works on real backups. The fixtures
+were zero-padded until 2026-08-21; a zero-padded fixture would let a reader that
+mishandles PKCS#7 pass.
+
+Every test stayed green across that change, with no code modification — which is
+itself evidence that truncate-to-recorded-size is padding-agnostic (ADR-0003).
+
 ---
 
 ## Real iOS backups — not committed, env-gated

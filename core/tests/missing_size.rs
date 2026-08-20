@@ -25,15 +25,17 @@ fn fixture(name: &str) -> PathBuf {
 
 #[test]
 fn a_file_with_no_recorded_size_is_not_silently_read_as_empty() {
-    let mut backup =
-        Backup::open_with(&fixture("no-size-backup"), &Credentials::none()).unwrap();
+    let mut backup = Backup::open_with(&fixture("no-size-backup"), &Credentials::none()).unwrap();
 
     let entry = backup
         .find("HomeDomain", "Library/Preferences/com.apple.example.plist")
         .expect("the fixture carries the size-less file")
         .clone();
 
-    assert_eq!(entry.size, None, "the manifest records no Size for this row");
+    assert_eq!(
+        entry.size, None,
+        "the manifest records no Size for this row"
+    );
 
     let bytes = backup.read(&entry).unwrap();
     assert_eq!(

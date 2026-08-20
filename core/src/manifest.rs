@@ -66,10 +66,18 @@ pub struct BackupFile {
     pub relative_path: String,
     /// File, directory, symlink, or an undefined `flags` value.
     pub kind: FileKind,
-    /// Length in bytes as the manifest records it. This is the *true* length:
-    /// an encrypted blob is padded to the AES block size, and the reader
-    /// truncates to this rather than guessing at padding.
-    pub size: u64,
+    /// Length in bytes as the manifest records it, or `None` when the metadata
+    /// records no `Size` at all.
+    ///
+    /// This is the *true* length: an encrypted blob is PKCS#7-padded out to the
+    /// AES block size, and the reader truncates to this rather than guessing at
+    /// padding (ADR-0003).
+    ///
+    /// `None` is deliberately distinct from `Some(0)`. An absent size collapsed
+    /// to zero would truncate a real file to nothing and report success — and a
+    /// crafted backup that omits `Size` would make a file disappear from an
+    /// examiner's view. `Some(0)` is a genuinely empty file.
+    pub size: Option<u64>,
     /// Protection class, when the metadata records one.
     pub protection_class: Option<u32>,
     /// The wrapped per-file key from `EncryptionKey`, still wrapped. `None` in
@@ -174,10 +182,11 @@ fn build_file(
     kind: FileKind,
     metadata: Option<&Archive>,
 ) -> BackupFile {
+    // No `unwrap_or_default()`: absent must stay absent. Collapsing it to 0
+    // here is what made a size-less row read as an empty file.
     let size = metadata
         .and_then(|a| a.root_i64("Size"))
-        .and_then(|s| u64::try_from(s).ok())
-        .unwrap_or_default();
+        .and_then(|s| u64::try_from(s).ok());
 
     // The stored EncryptionKey is a 4-byte little-endian protection class
     // followed by the 40-byte wrapped key. The class is also recorded as its

@@ -102,6 +102,8 @@ fn manifest_blob_integrity(backup: &Backup) -> Vec<AnomalyKind> {
                 file_id: entry.file_id.clone(),
                 domain: entry.domain.clone(),
                 relative_path: entry.relative_path.clone(),
+                // The manifest may record no size; the finding says so rather
+                // than printing a 0 the manifest never claimed.
                 size: entry.size,
             });
         }

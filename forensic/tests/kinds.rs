@@ -23,7 +23,7 @@ fn every_kind() -> Vec<AnomalyKind> {
             file_id: "3d0d7e5fb2ce288813306e4d4636395e047a3d28".into(),
             domain: "HomeDomain".into(),
             relative_path: "Library/SMS/sms.db".into(),
-            size: 316,
+            size: Some(316),
         },
         AnomalyKind::BlobOrphan {
             file_id: "ff00000000000000000000000000000000000000".into(),

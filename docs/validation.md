@@ -14,6 +14,7 @@ what it does not yet rest on.
 | `fileID` derivation | A published constant for `HomeDomain-Library/SMS/sms.db` | **T1** |
 | Keybag TLV grammar | A real 1388-byte `BackupKeyBag` | **T2** |
 | Full decrypt pipeline | Fixture encrypted by Python `cryptography`, decrypted by this crate | **T2** |
+| Format rules (keybag, KDF, key unwrap, IV, prefixes) | Cross-read against `iphone-dataprotection` via datatags/mount-ios-backup — agrees rule for rule | **T2** |
 | Production KDF parameters | Real backup: 10,000,000 + 10,000 rounds, wrong password correctly rejected | **T2** |
 | **End-to-end decrypt of real evidence** | **not yet performed** | **gap** |
 
@@ -71,6 +72,66 @@ password is rejected at real cost. Measured: **3.16 s** to derive and reject.
 That test asserts a *lower bound* on elapsed time. A derivation returning
 instantly did not run ten million rounds — absent work leaves a timing signature,
 and without the bound a skipped derivation would read as a pass.
+
+### Cross-read against an independent implementation
+
+Reviewed 2026-08-21 against
+[`datatags/mount-ios-backup`](https://github.com/datatags/mount-ios-backup),
+which vendors `iphone-dataprotection` — the canonical reverse-engineering
+reference, a lineage independent of both our Rust and our Python generator.
+
+Comparing against source is T2 (executing on the same artifact and reconciling
+output would be T1, and needs a backup password we do not have).
+
+**Agrees, rule for rule:**
+
+| | Theirs | Ours |
+|---|---|---|
+| TLV grammar | `_loopTLVBlocks`: 4-byte tag, 4-byte BE length | same |
+| Header vs class `UUID`/`WRAP` | first is the bag's, later `UUID` opens a class | same |
+| Class-only tags | `CLAS WRAP WPKY KTYP PBKY` | same |
+| Derivation | `pbkdf2(sha256, DPSL, DPIC, 32)` → `pbkdf2(sha1, SALT, ITER, 32)` | same |
+| Passcode-wrapped test | `WRAP & 2` | same |
+| Integrity check | `A != 0xa6a6a6a6a6a6a6a6` → fail | RFC 3394 via `aes-kw` |
+| Wrapped key width | `0x28` (40) | same |
+| `ManifestKey` | `<l` class prefix + `[4:]` | same |
+| `Manifest.db` IV | all-zero | same |
+| Per-file key | `$objects[UID]['NS.data'][4:]` | same |
+| Keybag kinds | System/Backup/Escrow/OTA (0–3) | same |
+
+That is independent corroboration of the keybag rule my mutation control already
+showed to be load-bearing.
+
+**Differs deliberately, and ours is stricter:**
+
+- A truncated trailing TLV: their loop (`while i + 8 <= len(blob)`) stops
+  silently; we return `TruncatedKeyBag`.
+- Any 4-byte value is coerced to an integer by them; we require the exact width
+  per field and return `BadFieldWidth`.
+- A `CLAS` tag before any `UUID` raises `TypeError` on a `None` subscript there;
+  we open a block.
+- `TYPE > 3` prints `FAIL` and continues there; we return `UnknownKeyBagType`.
+- An absent class raises `KeyError` there; we return `NoKeyForClass`.
+- They return "wrong password" if *any* passcode-wrapped class fails to unwrap;
+  we recover every class that does unwrap. A partially-damaged keybag yields
+  what it can rather than nothing.
+
+**Differs, and it found a defect in ours.** They strip PKCS#7 and never consult
+`Size`. We truncate to the recorded size — the better default, and confirmed so:
+their `removePadding` raises on a malformed trailer and loses the whole file.
+But `Size` was read with `unwrap_or_default()`, so a row recording **no** size
+became `0` and truncated a real file to nothing while returning `Ok`. Refusal
+counted as zero, and adversarially reachable: a crafted backup omitting `Size`
+makes a file disappear while every operation reports success.
+
+Fixed: `BackupFile::size` is `Option<u64>`, `None` distinct from `Some(0)`, with
+PKCS#7 stripping as the fallback when nothing was recorded. Regression test:
+`core/tests/missing_size.rs`. Recorded in ADR-0003.
+
+**And it corrected a fixture.** Our generator padded with zeros; iOS writes
+PKCS#7. The fixtures were regenerated, and every test stayed green with no code
+change — which is the padding-agnostic property of ADR-0003 demonstrated rather
+than asserted.
 
 ## Controls — evidence the tests can fail
 

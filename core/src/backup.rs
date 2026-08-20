@@ -208,7 +208,11 @@ impl Backup {
             bytes
         };
 
-        Ok(truncate_to_manifest_size(plaintext, entry.size))
+        Ok(truncate_to_manifest_size(
+            plaintext,
+            entry.size,
+            self.metadata.is_encrypted,
+        ))
     }
 }
 
@@ -217,11 +221,43 @@ impl Backup {
 /// A blob shorter than its recorded size is left as it is: the shortfall is
 /// evidence of a truncated backup, and padding it out would manufacture bytes
 /// that were never captured.
-fn truncate_to_manifest_size(mut bytes: Vec<u8>, size: u64) -> Vec<u8> {
+///
+/// When the manifest records **no** size, the recorded length cannot be used and
+/// the PKCS#7 trailer is stripped instead — the fallback the reference
+/// implementations use as their only strategy. Truncating to zero because
+/// nothing was recorded would be refusal counted as zero.
+fn truncate_to_manifest_size(mut bytes: Vec<u8>, size: Option<u64>, encrypted: bool) -> Vec<u8> {
+    let Some(size) = size else {
+        return if encrypted { strip_pkcs7(bytes) } else { bytes };
+    };
     if let Ok(size) = usize::try_from(size) {
         if bytes.len() > size {
             bytes.truncate(size);
         }
+    }
+    bytes
+}
+
+/// Remove a PKCS#7 trailer, or leave the bytes untouched when it is not valid.
+///
+/// Only reached when the manifest recorded no size. A malformed trailer returns
+/// the block intact rather than erroring: with no recorded length there is
+/// nothing to check it against, and handing back slightly too many real bytes
+/// beats discarding a file an examiner needs.
+fn strip_pkcs7(mut bytes: Vec<u8>) -> Vec<u8> {
+    let Some(&pad) = bytes.last() else {
+        return bytes;
+    };
+    let pad = pad as usize;
+    if pad == 0 || pad > 16 || pad > bytes.len() {
+        return bytes;
+    }
+    // Every padding byte must equal the pad length, or this is not PKCS#7.
+    if bytes[bytes.len() - pad..]
+        .iter()
+        .all(|&b| b as usize == pad)
+    {
+        bytes.truncate(bytes.len() - pad);
     }
     bytes
 }

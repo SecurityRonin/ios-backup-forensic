@@ -80,7 +80,9 @@ fn records_domain_relative_path_and_size() {
     assert_eq!(sms.domain, "HomeDomain");
     assert_eq!(sms.relative_path, "Library/SMS/sms.db");
     assert_eq!(sms.kind, FileKind::File);
-    assert_eq!(sms.size, 316); // 16-byte "SQLite format 3\0" header + 300 'A's
+    // Some(316), not 316: the manifest recording no size is a distinct state
+    // from it recording zero (ADR-0003).
+    assert_eq!(sms.size, Some(316)); // 16-byte "SQLite format 3\0" header + 300 'A's
 }
 
 // ------------------------------------------------------------ reading bytes
