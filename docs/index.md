@@ -18,3 +18,4 @@ included.
 | [0004](decisions/0004-unwrap-failure-is-a-wrong-password.md) | A failed unwrap is a wrong password |
 | [0005](decisions/0005-credentials-seam-for-mounting-tools.md) | A credentials seam for mounting tools |
 | [0006](decisions/0006-absent-domains-are-unrated.md) | An absent domain is reported unrated |
+| [0007](decisions/0007-msrv-is-inherited-from-plist.md) | The 1.88 MSRV is inherited, not ours |

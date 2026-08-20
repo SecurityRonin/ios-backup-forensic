@@ -24,9 +24,13 @@ jobs:
       # been *shown* to pass on macOS or Windows yet. Gating on an untested
       # matrix would be asserting a claim we have not measured.
       os-matrix: false
-      # Both members declare rust-version "1.85", so the workflow derives the
-      # floor itself. `test` rather than a bare build: an MSRV job that only
-      # compiles does not prove the crate works on the floor it promises.
+      # Both members declare rust-version "1.88", so the workflow derives the
+      # floor itself. That 1.88 is INHERITED from `plist` via `time`, not from
+      # our own code, which compiles on 1.85 (ADR-0007) — so this job is what
+      # will go green early when the constraint lifts and we can lower it.
+      #
+      # `test` rather than a bare build: a job that only compiles does not prove
+      # the crate works on the floor it promises.
       msrv-check: test
       # Measured on this branch with the command the shared workflow runs:
       #   cargo llvm-cov --workspace --all-features --summary-only

@@ -145,7 +145,7 @@ pub fn pbkdf2_hmac_sha256(password: &[u8], salt: &[u8], rounds: u32, out: &mut [
 /// hold — which is the signal that the password (hence the KEK) is wrong.
 pub fn aes_key_unwrap(kek: &[u8], wrapped: &[u8]) -> Result<Vec<u8>, Error> {
     // RFC 3394 operates on 64-bit semiblocks and needs at least three of them.
-    if wrapped.len() % 8 != 0 || wrapped.len() < 24 {
+    if !wrapped.len().is_multiple_of(8) || wrapped.len() < 24 {
         return Err(Error::BadWrappedKeyLength(wrapped.len()));
     }
     let mut out = vec![0u8; wrapped.len() - 8];
@@ -187,7 +187,7 @@ pub fn aes_key_unwrap(kek: &[u8], wrapped: &[u8]) -> Result<Vec<u8>, Error> {
 /// [`Error::BadCiphertextLength`] when `ciphertext` is not a whole number of
 /// 16-byte blocks, and [`Error::UnsupportedKeyWidth`] for a non-AES key width.
 pub fn decrypt_aes_cbc(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
-    if ciphertext.len() % 16 != 0 {
+    if !ciphertext.len().is_multiple_of(16) {
         return Err(Error::BadCiphertextLength(ciphertext.len()));
     }
     if iv.len() != 16 {

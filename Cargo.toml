@@ -7,7 +7,20 @@ members = ["core", "forensic"]
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.85"
+# MEASURED, not aspired to. Our own source compiles on 1.85 — verified by
+# pinning plist 1.7.4 / time 0.3.41 and running `cargo +1.85 check
+# --workspace --all-features` green. The 1.88 floor is INHERITED from `plist`
+# (via `time`), whose current release declares it.
+#
+# Declaring 1.85 would be the worse defect of the two the fleet warns about: an
+# overstated floor is merely conservative, but a floor the crate's own graph
+# cannot satisfy is a published promise that is simply false, and it fails for
+# downstream consumers rather than for us. A lockfile pin does not fix it —
+# a library's lockfile does not travel, so a consumer resolving `plist = "1"`
+# fresh gets 1.10 and 1.88 regardless of what we lock.
+#
+# Lower this the moment the constraint lifts: see ADR-0007.
+rust-version = "1.88"
 license = "Apache-2.0"
 authors = ["Albert Hui <albert@securityronin.com>"]
 repository = "https://github.com/SecurityRonin/ios-backup-forensic"

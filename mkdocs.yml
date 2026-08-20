@@ -19,5 +19,6 @@ nav:
       - Failed unwrap is a wrong password: decisions/0004-unwrap-failure-is-a-wrong-password.md
       - Credentials seam: decisions/0005-credentials-seam-for-mounting-tools.md
       - Absent domains are unrated: decisions/0006-absent-domains-are-unrated.md
+      - MSRV is inherited: decisions/0007-msrv-is-inherited-from-plist.md
   - Privacy: privacy.md
   - Terms: terms.md

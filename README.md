@@ -110,7 +110,7 @@ reason. The small upstream change is specified in
 ios-backup-core = "0.1"
 ```
 
-MSRV 1.85.
+MSRV 1.88 — inherited from `plist`, not from this crate's own code ([why](docs/decisions/0007-msrv-is-inherited-from-plist.md)).
 
 ---
 
