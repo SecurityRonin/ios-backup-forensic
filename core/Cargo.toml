@@ -1,0 +1,42 @@
+[package]
+name = "ios-backup-core"
+description = "Native, read-only, panic-free reader for iOS device backups (Finder / iTunes / MobileSync), including encrypted backups — keybag-derived AES decryption of the manifest and every file."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+readme = "README.md"
+
+[features]
+default = []
+# Surface a backup as a filesystem through the fleet VFS abstraction, so a
+# consumer mounts it with no `if ios_backup {…}` special case (ADR-0011).
+# Off by default (optional forensic-vfs dep).
+vfs = ["dep:forensic-vfs"]
+
+[dependencies]
+thiserror   = { workspace = true }
+safe-read   = { workspace = true }
+sqlite-core = { workspace = true }
+plist       = { workspace = true }
+aes         = { workspace = true }
+cbc         = { workspace = true }
+aes-kw      = { workspace = true }
+pbkdf2      = { workspace = true }
+hmac        = { workspace = true }
+sha1        = { workspace = true }
+sha2        = { workspace = true }
+zeroize     = { workspace = true }
+forensic-vfs = { version = "0.7", optional = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+hex      = { workspace = true }
+
+[lints]
+workspace = true

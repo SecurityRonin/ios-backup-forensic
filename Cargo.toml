@@ -1,0 +1,84 @@
+[workspace]
+resolver = "2"
+members = ["core", "forensic"]
+
+# Single source of truth for fields shared by every member (DRY): bump version /
+# MSRV / license here once; members inherit via `field.workspace = true`.
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "Apache-2.0"
+authors = ["Albert Hui <albert@securityronin.com>"]
+repository = "https://github.com/SecurityRonin/ios-backup-forensic"
+homepage = "https://securityronin.github.io/ios-backup-forensic/"
+categories = ["filesystem", "parser-implementations"]
+keywords = ["forensics", "dfir", "ios", "backup", "itunes"]
+
+[workspace.dependencies]
+# Fleet members (path within the workspace; registry version for publish).
+ios-backup-core = { version = "0.1.0", path = "core" }
+
+# The fleet's bounded integer readers — every offset/length field parsed from an
+# untrusted backup goes through these (ADR-0012), never a hand-rolled slice+unwrap.
+safe-read = "0.2"
+
+# The fleet SQLite reader: `Manifest.db` is a SQLite database, and in an encrypted
+# backup it is decrypted in memory and handed over as bytes. Preferring our own
+# crate over rusqlite/libsqlite3-sys is binding fleet policy (ADR-0010), and it is
+# also the safer choice here — a native, panic-free, read-only reader over
+# attacker-controllable bytes, with no C dependency.
+sqlite-core = "0.11"
+
+# KNOWLEDGE leaf: the normalized report model (Finding/Observation/Severity).
+forensicnomicon = "1"
+
+# Apple property lists (binary + XML). `Manifest.plist`, `Status.plist`,
+# `Info.plist` and the per-file metadata blob in `Files.file` are all bplists.
+# Already the fleet's choice in blob-decoder / usb-forensic / browser-forensic.
+plist = "1"
+
+# RustCrypto — audited, never hand-rolled, never a placeholder (CLAUDE.md).
+# The backup keybag path is PBKDF2 -> AES key-unwrap (RFC 3394) -> AES-CBC.
+aes     = "0.8"
+cbc     = "0.1"
+aes-kw  = "0.2"
+pbkdf2  = { version = "0.12", default-features = false, features = ["hmac"] }
+hmac    = "0.12"
+sha1    = "0.10"
+sha2    = "0.10"
+zeroize = { version = "1", features = ["derive"] }
+
+thiserror = "2"
+tempfile  = "3"
+hex       = "0.4"
+
+# No member contains an `unsafe` block or an `#[allow(unsafe_code)]` escape —
+# there is no mmap here (a backup is a directory of many small files, read via
+# std::fs) — so this is `forbid` (not locally overridable) rather than `deny`
+# (fleet default, CLAUDE.core.md).
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all                      = { level = "warn", priority = -1 }
+pedantic                 = { level = "warn", priority = -1 }
+correctness              = { level = "deny", priority = -1 }
+suspicious               = { level = "deny", priority = -1 }
+# Panic-free: an iOS backup is untrusted, attacker-controllable input
+# (Paranoid Gatekeeper, ADR-0012).
+unwrap_used              = { level = "deny", priority = 0 }
+expect_used              = { level = "deny", priority = 0 }
+# priority 1 so these individual allows outrank the grouped warn/deny entries above.
+module_name_repetitions  = { level = "allow", priority = 1 }
+must_use_candidate       = { level = "allow", priority = 1 }
+missing_errors_doc       = { level = "allow", priority = 1 }
+missing_panics_doc       = { level = "allow", priority = 1 }
+cast_possible_truncation = { level = "allow", priority = 1 }
+cast_possible_wrap       = { level = "allow", priority = 1 }
+cast_sign_loss           = { level = "allow", priority = 1 }
+cast_precision_loss      = { level = "allow", priority = 1 }
+too_many_lines           = { level = "allow", priority = 1 }
+items_after_statements   = { level = "allow", priority = 1 }
+similar_names            = { level = "allow", priority = 1 }
+manual_let_else          = { level = "allow", priority = 1 }
