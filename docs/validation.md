@@ -197,11 +197,11 @@ This is the largest outstanding gap in fleet compliance for these crates.
 
 ## Coverage
 
-89.91% line coverage (`cargo llvm-cov --workspace --all-features`), against
+89.81% line coverage (`cargo llvm-cov --workspace --all-features`), against
 ADR-0008's 100% requirement for a `*-core`/`*-forensic` pair. The CI gate is a
 floor at the measured 89 — a regression backstop, not the standard met.
 
-Uncovered, by file: `nskeyed.rs` (76.7%) and `backup.rs` (82.6%) hold most of it,
+Uncovered, by file: `nskeyed.rs` and `backup.rs` hold most of it,
 chiefly defensive arms needing malformed archive shapes not yet in the corpus —
 which is the same hole fuzzing would fill.
 

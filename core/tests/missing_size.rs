@@ -58,3 +58,47 @@ fn a_recorded_size_is_still_honoured_over_padding() {
     assert_eq!(entry.size, Some(32));
     assert_eq!(backup.read(&entry).unwrap(), vec![b'B'; 32]);
 }
+
+#[test]
+fn an_encrypted_file_with_no_recorded_size_falls_back_to_stripping_padding() {
+    // With no recorded length there is nothing to truncate to, so the PKCS#7
+    // trailer is the only remaining signal — the reference implementation's sole
+    // strategy becomes our fallback. Without it this file would come back as a
+    // whole padded block instead of its four real bytes.
+    let mut backup = Backup::open_with(
+        &fixture("no-size-encrypted"),
+        &Credentials::password(ios_backup_core::Password::new("test-password-1234")),
+    )
+    .unwrap();
+
+    let entry = backup
+        .find("HomeDomain", "Library/Preferences/com.apple.example.plist")
+        .unwrap()
+        .clone();
+
+    assert_eq!(entry.size, None);
+    assert_eq!(
+        backup.read(&entry).unwrap(),
+        b"tiny",
+        "PKCS#7 pads 4 bytes out to a 16-byte block; the trailer must come off"
+    );
+}
+
+#[test]
+fn an_encrypted_file_with_a_recorded_size_ignores_padding_entirely() {
+    // The exact-block-multiple case under PKCS#7: 32 bytes of plaintext gains a
+    // WHOLE extra 16-byte pad block, so the blob is 48 bytes. Truncating to the
+    // recorded 32 is right; a reader trusting the block count would emit 48.
+    let mut backup = Backup::open_with(
+        &fixture("encrypted-backup"),
+        &Credentials::password(ios_backup_core::Password::new("test-password-1234")),
+    )
+    .unwrap();
+    let entry = backup
+        .find("AppDomain-com.example.app", "Documents/exact.bin")
+        .unwrap()
+        .clone();
+
+    assert_eq!(entry.size, Some(32));
+    assert_eq!(backup.read(&entry).unwrap(), vec![b'B'; 32]);
+}

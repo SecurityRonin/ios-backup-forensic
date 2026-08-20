@@ -85,6 +85,20 @@ Chosen to exercise the reader rather than to look realistic:
   `Size` key**.
 - **Consumed by:** `core/tests/missing_size.rs`.
 
+## `no-size-encrypted/` — synthetic, T3
+
+- **Generator command:**
+
+  ```bash
+  python3 tools/mint_encrypted_backup.py tests/data/no-size-encrypted --omit-size
+  ```
+
+- The encrypted twin of the above: the first file has no `Size` **and** its blob
+  is AES-CBC encrypted, so reading it exercises the PKCS#7 fallback rather than
+  truncation.
+- **Password:** `test-password-1234`
+- **Consumed by:** `core/tests/missing_size.rs`.
+
 T3 and honestly so: we authored both the malformation and the expected result.
 It is a regression guard for a defect found by reading
 `datatags/mount-ios-backup`, not independent evidence — an absent `Size` was

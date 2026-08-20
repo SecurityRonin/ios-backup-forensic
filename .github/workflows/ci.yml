@@ -34,7 +34,7 @@ jobs:
       msrv-check: test
       # Measured on this branch with the command the shared workflow runs:
       #   cargo llvm-cov --workspace --all-features --summary-only
-      #   -> TOTAL lines 89.91%
+      #   -> TOTAL lines 89.81%
       # The floor is floor(measured) = 89: a regression backstop at today's real
       # number, not a target nobody has met.
       #
@@ -91,11 +91,15 @@ jobs:
           set -euo pipefail
           python3 tools/mint_encrypted_backup.py /tmp/enc
           python3 tools/mint_encrypted_backup.py /tmp/plain --plain
+          python3 tools/mint_encrypted_backup.py /tmp/nosize --plain --omit-size
+          python3 tools/mint_encrypted_backup.py /tmp/nosizeenc --omit-size
           # Manifest.plist embeds a Date, and Manifest.db is a SQLite file whose
           # page padding is not byte-stable across sqlite3 builds. Compare the
           # content blobs and the keybag, which are what the crypto tests read.
           diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/enc tests/data/encrypted-backup
           diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/plain tests/data/plain-backup
+          diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/nosize tests/data/no-size-backup
+          diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/nosizeenc tests/data/no-size-encrypted
           echo "✓ fixtures reproduce from tools/mint_encrypted_backup.py"
 
   # A backup is untrusted, attacker-controllable input. This crate forbids
