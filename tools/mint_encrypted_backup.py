@@ -166,6 +166,13 @@ def main() -> int:
     )
     parser.add_argument("--seed", type=int, default=20260821)
     parser.add_argument(
+        "--lie",
+        choices=["unencrypted", "encrypted"],
+        help="write a Manifest.plist whose IsEncrypted DISAGREES with the bytes: "
+             "'unencrypted' encrypts everything but declares false; 'encrypted' "
+             "leaves plaintext but declares true",
+    )
+    parser.add_argument(
         "--evil-file-id",
         action="store_true",
         help="mint the first file with a path-traversing fileID, to prove a "
@@ -278,12 +285,20 @@ def main() -> int:
         db_path.write_bytes(aes_cbc_encrypt(manifest_key, plaintext_db))
 
     # ---- Manifest.plist ----------------------------------------------------
+    # `--lie` flips only the DECLARATION, never the bytes. That is the point:
+    # the reader must survey the effective state rather than trust the flag.
+    declared_encrypted = encrypted
+    if args.lie == "unencrypted":
+        declared_encrypted = False
+    elif args.lie == "encrypted":
+        declared_encrypted = True
+
     manifest = {
         "Version": "10.0",
         "Date": dt.datetime(2026, 8, 21, 6, 0, 0),
         "SystemDomainsVersion": "24.0",
-        "IsEncrypted": encrypted,
-        "WasPasscodeSet": encrypted,
+        "IsEncrypted": declared_encrypted,
+        "WasPasscodeSet": declared_encrypted,
         "Lockdown": {"ProductType": "iPhone13,3", "ProductVersion": "26.2",
                      "BuildVersion": "23C5000", "DeviceName": "Fixture"},
         "Applications": {},
