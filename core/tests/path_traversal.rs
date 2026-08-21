@@ -134,7 +134,7 @@ fn an_uppercase_digest_still_resolves() {
 fn entry_with_file_id(file_id: &str) -> ios_backup_core::BackupFile {
     let mut backup = Backup::open_with(&fixture("plain-backup"), &Credentials::none()).unwrap();
     let mut entry = backup.files()[0].clone();
-    entry.file_id = file_id.to_owned();
+    file_id.clone_into(&mut entry.file_id);
     let _ = &mut backup;
     entry
 }

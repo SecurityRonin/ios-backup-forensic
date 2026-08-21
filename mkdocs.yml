@@ -20,5 +20,6 @@ nav:
       - Credentials seam: decisions/0005-credentials-seam-for-mounting-tools.md
       - Absent domains are unrated: decisions/0006-absent-domains-are-unrated.md
       - MSRV is inherited: decisions/0007-msrv-is-inherited-from-plist.md
+      - fileID is validated: decisions/0008-file-id-shape-is-validated-not-sanitised.md
   - Privacy: privacy.md
   - Terms: terms.md

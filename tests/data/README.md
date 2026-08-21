@@ -104,6 +104,24 @@ It is a regression guard for a defect found by reading
 `datatags/mount-ios-backup`, not independent evidence — an absent `Size` was
 being read as `0`, truncating a real file to nothing while reporting success.
 
+## `evil-file-id/` — synthetic, T3, adversarial
+
+- **Generator command:**
+
+  ```bash
+  python3 tools/mint_encrypted_backup.py tests/data/evil-file-id --plain --evil-file-id
+  ```
+
+- The first file's `fileID` is `../../../../../../../../etc/passwd` rather than a
+  digest, and **no blob is written for it** — the question is whether the reader
+  *resolves* the path, not whether something happens to be there.
+- **Consumed by:** `core/tests/path_traversal.rs`.
+
+An adversarial fixture, not a realistic one. It exists because `Manifest.db` is
+attacker-controllable (ADR-0012) and `fileID` becomes a filesystem path; the
+traversal it encodes was live in this crate until 2026-08-21 (ADR-0008), found
+by reading MVT.
+
 ### A note on padding
 
 The generator pads with **PKCS#7**, not zeros. That is what iOS actually writes,

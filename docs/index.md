@@ -19,3 +19,4 @@ included.
 | [0005](decisions/0005-credentials-seam-for-mounting-tools.md) | A credentials seam for mounting tools |
 | [0006](decisions/0006-absent-domains-are-unrated.md) | An absent domain is reported unrated |
 | [0007](decisions/0007-msrv-is-inherited-from-plist.md) | The 1.88 MSRV is inherited, not ours |
+| [0008](decisions/0008-file-id-shape-is-validated-not-sanitised.md) | A `fileID` is validated, never sanitised |

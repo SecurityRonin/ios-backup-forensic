@@ -16,6 +16,7 @@ what it does not yet rest on.
 | Full decrypt pipeline | Fixture encrypted by Python `cryptography`, decrypted by this crate | **T2** |
 | Format rules (keybag, KDF, key unwrap, IV, prefixes) | Cross-read against `iphone-dataprotection` via datatags/mount-ios-backup — agrees rule for rule | **T2** |
 | Production KDF parameters | Real backup: 10,000,000 + 10,000 rounds, wrong password correctly rejected | **T2** |
+| `fileID` path safety | Cross-read against MVT — defect found and fixed (ADR-0008) | **T2** |
 | **End-to-end decrypt of real evidence** | **not yet performed** | **gap** |
 
 ## T1 — third party authored artifact *and* answer key
@@ -132,6 +133,52 @@ PKCS#7 stripping as the fallback when nothing was recorded. Regression test:
 PKCS#7. The fixtures were regenerated, and every test stayed green with no code
 change — which is the padding-agnostic property of ADR-0003 demonstrated rather
 than asserted.
+
+### Cross-read against MVT (Amnesty International Security Lab)
+
+Reviewed 2026-08-21 against [`mvt-project/mvt`](https://github.com/mvt-project/mvt).
+
+MVT delegates decryption to the `iOSbackup` library rather than implementing the
+keybag, so it corroborates little of the cryptography directly. Its value was
+architectural, and it **found a security defect here**.
+
+**The defect: path traversal via `fileID`.** MVT guards the blob path explicitly;
+this crate did not. Two escapes existed, and the Rust-specific one is the
+serious one — `Path::join` replaces the whole path when given an absolute
+argument, so a `fileID` of `/etc/passwd` addressed the examiner's filesystem
+directly rather than merely leaving the backup. A crafted `Manifest.db` could
+have made `Backup::read` return any file the examiner's process could read.
+
+Fixed structurally in ADR-0008: the `fileID` shape is validated before any path
+is built, so traversal is inexpressible rather than filtered. Regression tests in
+`core/tests/path_traversal.rs`; mutation-verified (neutering the guard turns
+three of five red).
+
+**Where we differ, and ours is safer:**
+
+- **Encryption detection.** MVT infers it by trying `SELECT fileID FROM Files`
+  and treating a `sqlite3.DatabaseError` as "encrypted". That conflates
+  *encrypted* with *corrupt*: an unencrypted backup with a damaged `Manifest.db`
+  is reported as encrypted. We read `Manifest.plist`'s `IsEncrypted` declaration.
+  (Neither signal alone is complete — see the open item below.)
+- **Decrypted evidence on disk.** MVT writes a decrypted `Manifest.db` and
+  decrypted file copies to disk, and `TemporarySQLiteConnection` makes temporary
+  copies of databases. We decrypt into memory and never write plaintext
+  (ADR-0002). This is not a criticism of MVT, whose job is to produce a
+  decrypted backup for later modules; it is the reason our reader's contract is
+  narrower.
+
+**Where MVT is ahead of us:** its domain and IOC knowledge is far broader than
+our `EXPECTED_DOMAINS` list, and it carries a maintained IOC-matching pipeline
+(`pyahocorasick`) that we do not attempt. Our analyzer's scope is backup
+*integrity*, not threat intelligence, and it should stay that way — but the
+`EXPECTED_DOMAINS` list is reasoned, not measured, and MVT's module set is the
+better reference for extending it.
+
+**Open item, not yet done.** Neither signal is authoritative alone: a backup
+whose `Manifest.plist` says `IsEncrypted = false` while `Manifest.db` will not
+parse as SQLite is a contradiction worth reporting as a finding. Today that
+surfaces as `Error::Sqlite` without naming the possibility.
 
 ## Controls — evidence the tests can fail
 

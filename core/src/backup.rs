@@ -175,9 +175,13 @@ impl Backup {
                 kind: format!("{:?}", entry.kind),
             });
         }
+        // A fileID that is not a SHA-1 digest names no blob. Reported as its
+        // own error rather than as a missing blob: "not present" and "refused
+        // to resolve" are different facts, and an examiner needs the second one
+        // to know a backup tried to walk the reader out of its own directory.
         let path = self
             .blob_path(entry)
-            .ok_or_else(|| Error::BlobMissing(entry.file_id.clone()))?;
+            .ok_or_else(|| Error::UnsafeFileId(entry.file_id.clone()))?;
 
         let bytes = match std::fs::read(&path) {
             Ok(bytes) => bytes,

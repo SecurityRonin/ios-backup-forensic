@@ -99,11 +99,33 @@ impl BackupFile {
     /// The blob's path relative to the backup root: `<first-2-hex>/<fileID>`.
     #[must_use]
     pub fn blob_relative_path(&self) -> Option<std::path::PathBuf> {
-        // A fileID that is not at least two characters cannot name a blob
-        // directory; refuse rather than build a path that reads the root.
+        // `Manifest.db` is attacker-controllable and this value becomes a
+        // filesystem path, so the shape is validated before any path is built.
+        //
+        // Validating rather than sanitising is deliberate: a `fileID` *is* a
+        // SHA-1 hex digest, and hex contains no separator, no dot and no drive
+        // letter. Accepting only that shape makes traversal impossible by
+        // construction — there is no path to sanitise because none is built.
+        //
+        // The escape this closes is not only the obvious `..` climb.
+        // `Path::join` REPLACES the whole path when given an absolute one, so a
+        // `fileID` of `/etc/passwd` would have addressed the examiner's
+        // filesystem directly rather than merely leaving the backup.
+        if !is_file_id(&self.file_id) {
+            return None;
+        }
         let prefix = self.file_id.get(..2)?;
         Some(std::path::Path::new(prefix).join(&self.file_id))
     }
+}
+
+/// Whether `value` has the shape of a `fileID`: exactly 40 hex characters.
+///
+/// Case-insensitive. Refusing an uppercase digest would drop a legitimate row
+/// over a case difference, which is its own way of losing evidence.
+#[must_use]
+pub fn is_file_id(value: &str) -> bool {
+    value.len() == 40 && value.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
 /// Locate a column by name and return its index.

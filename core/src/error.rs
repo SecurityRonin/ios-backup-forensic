@@ -156,6 +156,15 @@ pub enum Error {
     #[error("content blob {0} named by the manifest is not present in the backup")]
     BlobMissing(String),
 
+    /// A `fileID` does not have the shape of a SHA-1 digest, so it cannot name
+    /// a blob and no path is built from it.
+    ///
+    /// `Manifest.db` is attacker-controllable and `fileID` becomes a filesystem
+    /// path, so a value that is not 40 hex characters is refused outright
+    /// rather than sanitised. Carries the offending value verbatim.
+    #[error("fileID {0:?} is not a SHA-1 digest and cannot name a content blob")]
+    UnsafeFileId(String),
+
     /// A read was attempted on an entry that has no content.
     #[error("{path} is a {kind}, not a file with content")]
     NotAFile {
