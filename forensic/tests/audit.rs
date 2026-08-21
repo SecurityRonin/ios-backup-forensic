@@ -61,6 +61,54 @@ fn an_encrypted_backup_that_was_unlocked_is_recorded_as_such() {
 }
 
 #[test]
+fn a_backup_whose_plist_disagrees_with_its_data_is_reported() {
+    // Both directions. The reader recovers from the disagreement so the backup
+    // still opens; the analyzer is where the disagreement gets said out loud.
+    for (name, creds) in [
+        (
+            "lie-unencrypted",
+            Credentials::password(Password::new(PASSWORD)),
+        ),
+        ("lie-encrypted", Credentials::none()),
+    ] {
+        let backup = Backup::open_with(&fixture(name), &creds).unwrap();
+        let findings = audit(&backup);
+
+        let contradiction = findings
+            .iter()
+            .find(|f| f.code.contains("ENCRYPTION-STATE-CONTRADICTION"))
+            .unwrap_or_else(|| panic!("{name}: got {:?}", codes(&findings)));
+
+        // The exhibit must carry both values, or the reader cannot see what
+        // disagreed with what.
+        let fields: Vec<&str> = contradiction
+            .evidence
+            .iter()
+            .map(|e| e.field.as_str())
+            .collect();
+        assert!(fields.contains(&"IsEncrypted"), "{name}: {fields:?}");
+        assert!(
+            fields.contains(&"manifestActuallyEncrypted"),
+            "{name}: {fields:?}"
+        );
+    }
+}
+
+#[test]
+fn an_honest_backup_reports_no_contradiction() {
+    // The negative control: this finding must not fire on every backup, or it
+    // is noise wearing a severity.
+    let findings = audit(&plain());
+    assert!(
+        !codes(&findings)
+            .iter()
+            .any(|c| c.contains("ENCRYPTION-STATE-CONTRADICTION")),
+        "got {:?}",
+        codes(&findings)
+    );
+}
+
+#[test]
 fn every_finding_names_this_analyzer_as_its_source() {
     for finding in audit(&plain()) {
         assert_eq!(finding.source.analyzer, "ios-backup-forensic");

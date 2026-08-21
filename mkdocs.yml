@@ -21,5 +21,6 @@ nav:
       - Absent domains are unrated: decisions/0006-absent-domains-are-unrated.md
       - MSRV is inherited: decisions/0007-msrv-is-inherited-from-plist.md
       - fileID is validated: decisions/0008-file-id-shape-is-validated-not-sanitised.md
+      - Effective encryption state: decisions/0009-effective-encryption-state-over-the-declaration.md
   - Privacy: privacy.md
   - Terms: terms.md

@@ -9,6 +9,44 @@ use crate::keybag::KeyBag;
 use crate::manifest::{self, BackupFile};
 use crate::metadata::{BackupMetadata, Manifest};
 
+/// What `Manifest.plist` **says** about encryption, and what the bytes show.
+///
+/// Kept as two values because they can disagree, and the disagreement is
+/// evidence. `IsEncrypted` is a declaration; only `Manifest.db` itself settles
+/// whether anything has to be decrypted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct EncryptionState {
+    /// `Manifest.plist`'s `IsEncrypted` flag, as written.
+    pub declared: bool,
+    /// Whether `Manifest.db` actually had to be decrypted to be read.
+    pub observed: bool,
+    /// Whether `Manifest.plist` carries a `BackupKeyBag`.
+    ///
+    /// The tie-breaker between *encrypted* and *corrupt*: a manifest that will
+    /// not parse and has no keybag is damaged, not locked.
+    pub keybag_present: bool,
+}
+
+impl EncryptionState {
+    /// Whether the declaration disagrees with the bytes.
+    #[must_use]
+    pub fn is_contradictory(&self) -> bool {
+        self.declared != self.observed
+    }
+}
+
+/// The first sixteen bytes of every `SQLite` database (file format section 1.3).
+const SQLITE_MAGIC: &[u8] = b"SQLite format 3\0";
+
+/// Whether `bytes` opens with the `SQLite` magic.
+///
+/// This is the *effective* test for "is this manifest encrypted": ciphertext
+/// begins with the magic only by a coincidence of odds around 2^-128.
+fn is_plaintext_sqlite(bytes: &[u8]) -> bool {
+    bytes.starts_with(SQLITE_MAGIC)
+}
+
 /// An opened iOS backup.
 ///
 /// Holds the file tree and, for an encrypted backup, the unwrapped class keys.
@@ -20,6 +58,7 @@ pub struct Backup {
     files: Vec<BackupFile>,
     /// `Some` only for an encrypted backup that was successfully unlocked.
     class_keys: Option<ClassKeys>,
+    encryption: EncryptionState,
 }
 
 /// A backup never renders its key material.
@@ -28,7 +67,7 @@ impl core::fmt::Debug for Backup {
         f.debug_struct("Backup")
             .field("root", &self.root)
             .field("files", &self.files.len())
-            .field("encrypted", &self.metadata.is_encrypted)
+            .field("encryption", &self.encryption)
             .field("unlocked", &self.class_keys.is_some())
             .finish_non_exhaustive()
     }
@@ -58,11 +97,41 @@ impl Backup {
     /// key unwrapped, and [`Error::Sqlite`] when `Manifest.db` will not read.
     pub fn open_with(path: &Path, credentials: &Credentials) -> Result<Self, Error> {
         let manifest = Manifest::read(path)?;
+        let raw_manifest_db = read_file(&path.join("Manifest.db"))?;
 
-        let (class_keys, manifest_bytes) = if manifest.metadata.is_encrypted {
-            Self::unlock(path, &manifest, credentials)?
+        // Survey the effective state rather than trusting the declaration.
+        // `IsEncrypted` says what the plist claims; the SQLite magic says what
+        // the bytes are, and only the second decides whether a key is needed.
+        //
+        // A manifest that is not plaintext SQLite is treated as encrypted only
+        // when a keybag exists to decrypt it with. Without one it is damaged,
+        // and reporting it as locked would send an examiner hunting for a
+        // password that does not exist — the distinction a parse-probe alone
+        // cannot draw.
+        let keybag_present = manifest.keybag.is_some();
+        let observed_encrypted = !is_plaintext_sqlite(&raw_manifest_db) && keybag_present;
+
+        let encryption = EncryptionState {
+            declared: manifest.metadata.is_encrypted,
+            observed: observed_encrypted,
+            keybag_present,
+        };
+
+        // Declared encrypted, unreadable as SQLite, and carrying no keys: the
+        // plist is internally inconsistent, and saying so is more useful than
+        // "not a database". Distinct from the same shape declared *plaintext*,
+        // which is ordinary corruption.
+        if manifest.metadata.is_encrypted
+            && !keybag_present
+            && !is_plaintext_sqlite(&raw_manifest_db)
+        {
+            return Err(Error::MissingKeyBag);
+        }
+
+        let (class_keys, manifest_bytes) = if observed_encrypted {
+            Self::unlock(&manifest, credentials, &raw_manifest_db)?
         } else {
-            (None, read_file(&path.join("Manifest.db"))?)
+            (None, raw_manifest_db)
         };
 
         let files = manifest::read_files(manifest_bytes)?;
@@ -72,7 +141,17 @@ impl Backup {
             metadata: manifest.metadata,
             files,
             class_keys,
+            encryption,
         })
+    }
+
+    /// What the plist declared about encryption, and what the bytes showed.
+    ///
+    /// [`EncryptionState::is_contradictory`] is the one worth reporting: a
+    /// backup whose declaration disagrees with its own data.
+    #[must_use]
+    pub fn encryption_state(&self) -> &EncryptionState {
+        &self.encryption
     }
 
     /// Derive the class keys and decrypt `Manifest.db` into memory.
@@ -81,9 +160,9 @@ impl Backup {
     /// a temporary file would be a plaintext copy of the evidence with a
     /// lifetime nobody is tracking.
     fn unlock(
-        root: &Path,
         manifest: &Manifest,
         credentials: &Credentials,
+        ciphertext: &[u8],
     ) -> Result<(Option<ClassKeys>, Vec<u8>), Error> {
         let Some(password) = credentials.as_password() else {
             return Err(Error::PasswordRequired);
@@ -106,16 +185,20 @@ impl Backup {
             safe_read::try_le_u32(manifest_key, 0).ok_or(Error::MissingManifestKey)?;
         let key = crypto::unwrap_file_key(&class_keys, protection_class, manifest_key)?;
 
-        let ciphertext = read_file(&root.join("Manifest.db"))?;
-        let plaintext = crypto::decrypt_aes_cbc_zero_iv(&key, &ciphertext)?;
+        let plaintext = crypto::decrypt_aes_cbc_zero_iv(&key, ciphertext)?;
 
         Ok((Some(class_keys), plaintext))
     }
 
-    /// Whether `Manifest.plist` declares this backup encrypted.
+    /// Whether this backup's data actually had to be decrypted.
+    ///
+    /// Reports the **bytes**, not `Manifest.plist`'s declaration: the question a
+    /// caller is really asking is "must this be decrypted", and only the data
+    /// answers it. Use [`Self::encryption_state`] when the declaration itself
+    /// matters.
     #[must_use]
     pub fn is_encrypted(&self) -> bool {
-        self.metadata.is_encrypted
+        self.encryption.observed
     }
 
     /// The backup's own directory.
@@ -196,7 +279,7 @@ impl Backup {
             }
         };
 
-        let plaintext = if self.metadata.is_encrypted {
+        let plaintext = if self.encryption.observed {
             let class_keys = self.class_keys.as_ref().ok_or(Error::NotUnlocked)?;
             let wrapped = entry
                 .encryption_key
@@ -215,7 +298,7 @@ impl Backup {
         Ok(truncate_to_manifest_size(
             plaintext,
             entry.size,
-            self.metadata.is_encrypted,
+            self.encryption.observed,
         ))
     }
 }

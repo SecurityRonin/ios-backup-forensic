@@ -53,6 +53,7 @@ pub fn audit(backup: &Backup) -> Vec<Finding> {
     let mut kinds = Vec::new();
 
     kinds.extend(encryption_state(backup));
+    kinds.extend(encryption_contradiction(backup));
     kinds.extend(manifest_blob_integrity(backup));
     kinds.extend(file_id_integrity(backup));
     kinds.extend(absent_domains(backup));
@@ -83,6 +84,22 @@ fn encryption_state(backup: &Backup) -> Vec<AnomalyKind> {
         // are absent, which changes what the evidence can be asked.
         vec![AnomalyKind::UnencryptedBackup]
     }
+}
+
+/// Whether `Manifest.plist` agrees with `Manifest.db` about encryption.
+///
+/// `IsEncrypted` is a declaration and the bytes are the fact; the reader keeps
+/// both precisely so this comparison can be made.
+fn encryption_contradiction(backup: &Backup) -> Vec<AnomalyKind> {
+    let state = backup.encryption_state();
+    if !state.is_contradictory() {
+        return Vec::new();
+    }
+    vec![AnomalyKind::EncryptionStateContradiction {
+        declared_encrypted: state.declared,
+        observed_encrypted: state.observed,
+        keybag_present: state.keybag_present,
+    }]
 }
 
 /// Rows whose blob is missing, and blobs no row references.

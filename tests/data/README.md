@@ -122,6 +122,25 @@ attacker-controllable (ADR-0012) and `fileID` becomes a filesystem path; the
 traversal it encodes was live in this crate until 2026-08-21 (ADR-0008), found
 by reading MVT.
 
+## `lie-unencrypted/` and `lie-encrypted/` — synthetic, T3, adversarial
+
+- **Generator commands:**
+
+  ```bash
+  python3 tools/mint_encrypted_backup.py tests/data/lie-unencrypted --lie unencrypted
+  python3 tools/mint_encrypted_backup.py tests/data/lie-encrypted --plain --lie encrypted
+  ```
+
+- `--lie` flips only the **declaration** in `Manifest.plist`, never the bytes.
+  `lie-unencrypted` is a fully encrypted backup declaring `IsEncrypted = false`;
+  `lie-encrypted` is plaintext declaring `true`.
+- **Password** (`lie-unencrypted`): `test-password-1234`
+- **Consumed by:** `core/tests/encryption_state.rs`, `forensic/tests/audit.rs`.
+
+They exist because `IsEncrypted` is a claim and the bytes are the fact. A reader
+that trusts the flag refuses a readable backup in one direction and parses
+ciphertext as SQLite in the other. See ADR-0009.
+
 ### A note on padding
 
 The generator pads with **PKCS#7**, not zeros. That is what iOS actually writes,

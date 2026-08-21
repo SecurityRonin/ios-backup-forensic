@@ -20,3 +20,4 @@ included.
 | [0006](decisions/0006-absent-domains-are-unrated.md) | An absent domain is reported unrated |
 | [0007](decisions/0007-msrv-is-inherited-from-plist.md) | The 1.88 MSRV is inherited, not ours |
 | [0008](decisions/0008-file-id-shape-is-validated-not-sanitised.md) | A `fileID` is validated, never sanitised |
+| [0009](decisions/0009-effective-encryption-state-over-the-declaration.md) | The effective encryption state, not the declaration |

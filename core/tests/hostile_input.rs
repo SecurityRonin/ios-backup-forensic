@@ -126,6 +126,10 @@ fn a_backup_marked_encrypted_with_no_keybag_is_reported_precisely() {
   <key>Version</key><string>10.0</string>
 </dict></plist>"#;
     std::fs::write(dir.path().join("Manifest.plist"), xml).unwrap();
+    // A Manifest.db that is not plaintext SQLite, so the ONLY defect under test
+    // is the absent keybag. Without this the fixture also lacked the manifest
+    // entirely and asserted on whichever failure surfaced first.
+    std::fs::write(dir.path().join("Manifest.db"), b"\x00\x01 not a database").unwrap();
 
     let err = Backup::open_with(
         dir.path(),

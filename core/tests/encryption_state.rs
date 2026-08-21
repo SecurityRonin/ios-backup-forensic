@@ -6,11 +6,11 @@
 //!
 //! Reading the declaration and stopping there is the "an unconfigured setting
 //! tells you the default, never the truth" failure: the reader would refuse a
-//! perfectly readable backup, or try to parse ciphertext as SQLite, on the
+//! perfectly readable backup, or try to parse ciphertext as `SQLite`, on the
 //! strength of one boolean.
 //!
 //! So the reader surveys the **effective** state — does `Manifest.db` actually
-//! begin with the SQLite magic — and recovers from the disagreement rather than
+//! begin with the `SQLite` magic — and recovers from the disagreement rather
 //! failing on it. Both values are kept, because the disagreement is itself
 //! evidence.
 //!

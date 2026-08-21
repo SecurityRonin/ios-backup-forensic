@@ -42,6 +42,16 @@ fn every_kind() -> Vec<AnomalyKind> {
             snapshot_state: "in-progress".into(),
         },
         AnomalyKind::NoFileRows,
+        AnomalyKind::EncryptionStateContradiction {
+            declared_encrypted: false,
+            observed_encrypted: true,
+            keybag_present: true,
+        },
+        AnomalyKind::EncryptionStateContradiction {
+            declared_encrypted: true,
+            observed_encrypted: false,
+            keybag_present: false,
+        },
     ]
 }
 
@@ -85,7 +95,7 @@ fn every_code_is_scheme_prefixed_and_unique() {
     let mut unique: Vec<&str> = codes.clone();
     unique.sort_unstable();
     unique.dedup();
-    assert_eq!(unique.len(), 8, "one code per variant; got {codes:?}");
+    assert_eq!(unique.len(), 9, "one code per variant; got {codes:?}");
 }
 
 #[test]

@@ -61,6 +61,25 @@ is intact and unreadable.
 - **No writing.** Read-only, in every path.
 - **No conclusions.** Findings are observations in consistent-with language.
 
+## Planned next: a broader anomaly-reporting layer
+
+The analyzer currently reports backup **integrity** — manifest/blob agreement,
+the `fileID` invariant, encryption-state contradiction, completeness — plus
+unrated domain-absence leads.
+
+The next piece of work is to widen that into a fuller anomaly-reporting layer.
+Two references worth mining rather than re-deriving:
+
+- **MVT's module set**, whose domain coverage is far broader than
+  `EXPECTED_DOMAINS`, which today is reasoned rather than measured.
+- **The contradiction pattern itself** — declaration versus effective state —
+  which generalises past encryption. `Status.plist` versus the manifest,
+  `Info.plist`'s device identity versus `Manifest.plist`'s `Lockdown`, and the
+  backup date versus the newest file mtime are all the same shape.
+
+Scope boundary to hold: this analyzer reports what is *observable in the backup*.
+IOC matching and threat intelligence belong upstream in `issen`, not here.
+
 ## Non-goals for now
 
 - An `iosbackup4n6` CLI. The consumer is `4n6mount`; a standalone triage binary

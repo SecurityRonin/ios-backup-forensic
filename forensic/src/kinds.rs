@@ -80,6 +80,16 @@ pub enum AnomalyKind {
 
     /// The manifest has rows but none of them is a file.
     NoFileRows,
+
+    /// `Manifest.plist`'s `IsEncrypted` disagrees with `Manifest.db` itself.
+    EncryptionStateContradiction {
+        /// What the plist declared.
+        declared_encrypted: bool,
+        /// What the bytes turned out to be.
+        observed_encrypted: bool,
+        /// Whether a `BackupKeyBag` was present.
+        keybag_present: bool,
+    },
 }
 
 impl Observation for AnomalyKind {
@@ -100,6 +110,12 @@ impl Observation for AnomalyKind {
 
             Self::BackupNotFinished { .. } | Self::NoFileRows => Some(Severity::Medium),
 
+            // A plist that disagrees with its own data. Medium rather than
+            // High: it is a real contradiction, but a partial copy or a tool
+            // that rewrote metadata separately from data explains it as well as
+            // tampering does, and the backup reveals no way to tell which.
+            Self::EncryptionStateContradiction { .. } => Some(Severity::Medium),
+
             // Deliberately unrated: see the module note. Absence of a domain is
             // a lead, and the backup holds nothing that distinguishes its
             // possible causes.
@@ -117,6 +133,9 @@ impl Observation for AnomalyKind {
             Self::ExpectedDomainAbsent { .. } => "IOS-BACKUP-DOMAIN-ABSENT",
             Self::BackupNotFinished { .. } => "IOS-BACKUP-NOT-FINISHED",
             Self::NoFileRows => "IOS-BACKUP-NO-FILE-ROWS",
+            Self::EncryptionStateContradiction { .. } => {
+                "IOS-BACKUP-ENCRYPTION-STATE-CONTRADICTION"
+            }
         }
     }
 
@@ -127,7 +146,8 @@ impl Observation for AnomalyKind {
             | Self::BlobOrphan { .. }
             | Self::FileIdMismatch { .. }
             | Self::NoFileRows
-            | Self::BackupNotFinished { .. } => Category::Integrity,
+            | Self::BackupNotFinished { .. }
+            | Self::EncryptionStateContradiction { .. } => Category::Integrity,
             // What a backup does *not* contain is a question about coverage,
             // which is the medium's biography rather than its integrity.
             Self::ExpectedDomainAbsent { .. } => Category::History,
@@ -197,6 +217,24 @@ impl Observation for AnomalyKind {
                  \"finished\". Consistent with a backup that was interrupted, which \
                  would also explain any missing content blobs."
             ),
+            Self::EncryptionStateContradiction {
+                declared_encrypted,
+                observed_encrypted,
+                keybag_present,
+            } => format!(
+                "Manifest.plist records IsEncrypted = {declared_encrypted}, but Manifest.db \
+                 {} a plaintext SQLite database, and {}. The backup's metadata disagrees \
+                 with its own data. Consistent with a partial copy of the backup, with \
+                 metadata written separately from the data, or with the property list \
+                 having been altered after the backup was taken; the backup records \
+                 nothing that distinguishes these.",
+                if *observed_encrypted { "is not" } else { "is" },
+                if *keybag_present {
+                    "a BackupKeyBag is present"
+                } else {
+                    "no BackupKeyBag is present"
+                }
+            ),
             Self::NoFileRows => {
                 "Manifest.db Files table has rows, but none of them describes a file \
                  with content. Consistent with a directory-only manifest or a partial \
@@ -254,6 +292,15 @@ impl Observation for AnomalyKind {
                 vec![row("SnapshotState", snapshot_state.clone())]
             }
             Self::NoFileRows => Vec::new(),
+            Self::EncryptionStateContradiction {
+                declared_encrypted,
+                observed_encrypted,
+                keybag_present,
+            } => vec![
+                row("IsEncrypted", declared_encrypted.to_string()),
+                row("manifestActuallyEncrypted", observed_encrypted.to_string()),
+                row("BackupKeyBagPresent", keybag_present.to_string()),
+            ],
         }
     }
 }

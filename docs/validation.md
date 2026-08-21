@@ -175,10 +175,17 @@ our `EXPECTED_DOMAINS` list, and it carries a maintained IOC-matching pipeline
 `EXPECTED_DOMAINS` list is reasoned, not measured, and MVT's module set is the
 better reference for extending it.
 
-**Open item, not yet done.** Neither signal is authoritative alone: a backup
-whose `Manifest.plist` says `IsEncrypted = false` while `Manifest.db` will not
-parse as SQLite is a contradiction worth reporting as a finding. Today that
-surfaces as `Error::Sqlite` without naming the possibility.
+**Closed 2026-08-21 (ADR-0009).** The reader now surveys the effective state —
+whether `Manifest.db` opens with the SQLite magic — keeps it alongside the
+declaration, and recovers in both directions rather than failing. A backup
+declared plaintext but actually encrypted opens with a password (and asks for one
+by name rather than reporting a corrupt manifest); a backup declared encrypted
+but actually plaintext opens without one. `ios-backup-forensic` reports the
+disagreement as `IOS-BACKUP-ENCRYPTION-STATE-CONTRADICTION`.
+
+Keeping *both* signals is what distinguishes three states MVT's parse-probe
+collapses into two: encrypted, corrupt, and declared-wrong. A manifest that will
+not parse and carries no keybag is damaged, not locked.
 
 ## Controls — evidence the tests can fail
 
@@ -244,7 +251,7 @@ This is the largest outstanding gap in fleet compliance for these crates.
 
 ## Coverage
 
-89.81% line coverage (`cargo llvm-cov --workspace --all-features`), against
+90.46% line coverage (`cargo llvm-cov --workspace --all-features`), against
 ADR-0008's 100% requirement for a `*-core`/`*-forensic` pair. The CI gate is a
 floor at the measured 89 — a regression backstop, not the standard met.
 

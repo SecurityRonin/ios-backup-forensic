@@ -34,7 +34,7 @@ jobs:
       msrv-check: test
       # Measured on this branch with the command the shared workflow runs:
       #   cargo llvm-cov --workspace --all-features --summary-only
-      #   -> TOTAL lines 89.98%
+      #   -> TOTAL lines 90.46%
       # The floor is floor(measured) = 89: a regression backstop at today's real
       # number, not a target nobody has met.
       #
@@ -43,7 +43,7 @@ jobs:
       # implicit — chiefly defensive arms in nskeyed and backup that need a
       # malformed archive shape not yet in the corpus.
       coverage-gate: floor
-      coverage-floor: 89
+      coverage-floor: 90
       # This repo's own deny.toml.
       deny-config-repo: ""
       # Check the full-feature dependency graph, including the `vfs` feature.
@@ -94,6 +94,8 @@ jobs:
           python3 tools/mint_encrypted_backup.py /tmp/nosize --plain --omit-size
           python3 tools/mint_encrypted_backup.py /tmp/nosizeenc --omit-size
           python3 tools/mint_encrypted_backup.py /tmp/evilid --plain --evil-file-id
+          python3 tools/mint_encrypted_backup.py /tmp/lieun --lie unencrypted
+          python3 tools/mint_encrypted_backup.py /tmp/lieen --plain --lie encrypted
           # Manifest.plist embeds a Date, and Manifest.db is a SQLite file whose
           # page padding is not byte-stable across sqlite3 builds. Compare the
           # content blobs and the keybag, which are what the crypto tests read.
@@ -102,6 +104,8 @@ jobs:
           diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/nosize tests/data/no-size-backup
           diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/nosizeenc tests/data/no-size-encrypted
           diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/evilid tests/data/evil-file-id
+          diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/lieun tests/data/lie-unencrypted
+          diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/lieen tests/data/lie-encrypted
           echo "✓ fixtures reproduce from tools/mint_encrypted_backup.py"
 
   # A backup is untrusted, attacker-controllable input. This crate forbids
