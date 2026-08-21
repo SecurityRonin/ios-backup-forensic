@@ -1,0 +1,35 @@
+[package]
+name = "ios-backup-core-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+# A fuzz crate is not a member of the workspace it fuzzes: an empty `[workspace]`
+# table makes this its own root, so `cargo build` at the repo root never tries to
+# compile a nightly-only libfuzzer target.
+[workspace]
+
+[[bin]]
+name = "parse_keybag"
+path = "fuzz_targets/parse_keybag.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "parse_nskeyed"
+path = "fuzz_targets/parse_nskeyed.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "parse_manifest"
+path = "fuzz_targets/parse_manifest.rs"
+test = false
+doc = false
+
+[dependencies]
+libfuzzer-sys = "0.4"
+ios-backup-core = { path = ".." }
