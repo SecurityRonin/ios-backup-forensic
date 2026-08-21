@@ -18,10 +18,11 @@ nav:
       - sqlite-core reads the manifest: decisions/0002-sqlite-core-reads-the-manifest.md
       - Truncate, never strip padding: decisions/0003-no-padding-strip-truncate-to-manifest-size.md
       - Failed unwrap is a wrong password: decisions/0004-unwrap-failure-is-a-wrong-password.md
-      - Credentials seam: decisions/0005-credentials-seam-for-mounting-tools.md
+      - "Credentials seam (superseded)": decisions/0005-credentials-seam-for-mounting-tools.md
       - Absent domains are unrated: decisions/0006-absent-domains-are-unrated.md
       - MSRV is inherited: decisions/0007-msrv-is-inherited-from-plist.md
       - fileID is validated: decisions/0008-file-id-shape-is-validated-not-sanitised.md
       - Effective encryption state: decisions/0009-effective-encryption-state-over-the-declaration.md
+      - Mounting goes through the VFS tree seam: decisions/0010-mounting-goes-through-the-vfs-tree-seam.md
   - Privacy: privacy.md
   - Terms: terms.md
