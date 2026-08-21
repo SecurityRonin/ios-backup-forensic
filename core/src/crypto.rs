@@ -19,7 +19,7 @@
 //!
 //! The two PBKDF2 rounds use **different digests**. Getting that backwards
 //! produces a wrong key that is indistinguishable from a wrong password, which
-//! is why [`crate::tests`]-adjacent RFC vectors pin each round separately.
+//! is why this crate's RFC test vectors pin each round separately.
 
 use aes::cipher::{BlockDecryptMut, KeyIvInit};
 use hmac::Hmac;
