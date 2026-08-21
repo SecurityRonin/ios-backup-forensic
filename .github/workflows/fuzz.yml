@@ -1,0 +1,72 @@
+name: Fuzz (scheduled)
+
+# Deep, time-boxed fuzzing of every target. CI's `fuzz-build` job only proves the
+# targets compile; this is the one that actually runs them.
+#
+# Every target is SEEDED from the committed fixtures, and that is load-bearing
+# rather than an optimization. Run bare, `parse_manifest` managed 3.1 million
+# executions and added *two* corpus units: `read_files` rejects anything without
+# the SQLite header immediately, so the fuzzer never reached the parser and the
+# clean result described the front-door check. Seeded with the same fixtures the
+# tests use, it found a panic in 143k runs. A green fuzz job over an unseeded
+# corpus is the "passes by finding nothing" failure in its purest form.
+
+on:
+  schedule:
+    - cron: "0 4 * * 1" # Mondays 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Fuzz ${{ matrix.member }}/${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - member: core
+            target: parse_keybag
+          - member: core
+            target: parse_nskeyed
+          - member: core
+            target: parse_manifest
+          - member: forensic
+            target: fuzz_forensic
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # nightly
+        with:
+          toolchain: nightly
+          components: rust-src
+      - run: cargo install cargo-fuzz --locked
+
+      - name: Seed the corpus from the committed fixtures
+        working-directory: ${{ matrix.member }}
+        run: |
+          set -euo pipefail
+          dir="fuzz/corpus/${{ matrix.target }}"
+          mkdir -p "$dir"
+          i=0
+          for f in ../tests/data/*/Manifest.db ../tests/data/*/Manifest.plist; do
+            [ -f "$f" ] || continue
+            cp "$f" "$dir/seed_$i.bin"
+            i=$((i + 1))
+          done
+          echo "seeded $i units into $dir"
+          # A seeding step that silently copies nothing leaves the job green over
+          # an empty corpus -- the exact condition this workflow exists to avoid.
+          test "$i" -gt 0 || { echo "::error::seeded nothing"; exit 1; }
+
+      - name: Fuzz ${{ matrix.target }} (10 min)
+        working-directory: ${{ matrix.member }}
+        run: cargo +nightly fuzz run "${{ matrix.target }}" -- -max_total_time=600
+
+      - name: Upload any crash
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fuzz-artifacts-${{ matrix.member }}-${{ matrix.target }}
+          path: ${{ matrix.member }}/fuzz/artifacts/
