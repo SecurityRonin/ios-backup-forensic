@@ -166,6 +166,13 @@ def main() -> int:
     )
     parser.add_argument("--seed", type=int, default=20260821)
     parser.add_argument(
+        "--blob-file-id",
+        action="store_true",
+        help="store the first file's fileID as a BLOB rather than TEXT. SQLite "
+             "has column affinity, not type enforcement, so this is legal and a "
+             "reader that matches only on TEXT drops the row",
+    )
+    parser.add_argument(
         "--lie",
         choices=["unencrypted", "encrypted"],
         help="write a Manifest.plist whose IsEncrypted DISAGREES with the bytes: "
@@ -262,9 +269,12 @@ def main() -> int:
         else:
             wrapped, blob = b"", payload
 
+        stored_file_id = (
+            file_id.encode("ascii") if args.blob_file_id and index == 0 else file_id
+        )
         conn.execute(
             "INSERT INTO Files VALUES (?,?,?,?,?)",
-            (file_id, domain, relative_path, FLAG_FILE,
+            (stored_file_id, domain, relative_path, FLAG_FILE,
              file_metadata(len(payload), protection_class, wrapped, relative_path,
                            FLAG_FILE, mtime, omit_size=args.omit_size and index == 0)),
         )
