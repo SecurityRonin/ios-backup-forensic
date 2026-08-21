@@ -150,7 +150,7 @@ fn column_index(columns: &[String], name: &str) -> Result<usize, Error> {
 /// encrypted backup, that usually means the manifest key was wrong),
 /// [`Error::ManifestTableMissing`] when there is no `Files` table, and
 /// [`Error::ManifestSchema`] when it lacks a column this reader needs.
-pub fn read_files(db_bytes: Vec<u8>) -> Result<Vec<BackupFile>, Error> {
+pub fn read_files(db_bytes: Vec<u8>) -> Result<ManifestFiles, Error> {
     let db = sqlite_core::Database::open(db_bytes).map_err(Error::Sqlite)?;
 
     let table = db
@@ -166,11 +166,16 @@ pub fn read_files(db_bytes: Vec<u8>) -> Result<Vec<BackupFile>, Error> {
     let file_col = column_index(&table.column_names, "file")?;
 
     let mut files = Vec::with_capacity(table.rows.len());
+    let mut unreadable = 0usize;
+
     for row in table.rows {
-        let Some(file_id) = text(&row.values, file_id_col) else {
-            // A row with no fileID names no blob and identifies nothing; it is
-            // not a file this reader can offer. Counting it would inflate the
-            // file count with an entry nothing can open.
+        let Some(file_id) = file_id_of(&row.values, file_id_col) else {
+            // This row identifies nothing, so it cannot be offered as a file.
+            // But it is COUNTED: a tree smaller than the manifest it came from
+            // is a fact an examiner needs, and dropping the row silently would
+            // make the loss invisible at the collection stage — where no
+            // analyzer can flag it and nobody knows to look.
+            unreadable += 1;
             continue;
         };
         let kind = FileKind::from_flags(integer(&row.values, flags_col).unwrap_or_default());
@@ -193,7 +198,39 @@ pub fn read_files(db_bytes: Vec<u8>) -> Result<Vec<BackupFile>, Error> {
             metadata.as_ref(),
         ));
     }
-    Ok(files)
+    Ok(ManifestFiles { files, unreadable })
+}
+
+/// What [`read_files`] recovered, and what it could not.
+///
+/// The second number exists so a shortfall is never silent. A reader that
+/// returns only the rows it liked has quietly redefined the evidence.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct ManifestFiles {
+    /// Every row that could be identified.
+    pub files: Vec<BackupFile>,
+    /// Rows whose `fileID` identified nothing, and which are therefore absent
+    /// from `files`.
+    pub unreadable: usize,
+}
+
+/// A row's `fileID`, accepting either storage class.
+///
+/// `Manifest.db` declares the column `TEXT`, but `SQLite` enforces **affinity,
+/// not type**: a BLOB stored there is legal and round-trips unchanged. A
+/// `fileID` is ASCII hex, so a BLOB holding one decodes to exactly the same
+/// string — refusing it would lose a file over a storage detail that changes
+/// nothing about the evidence.
+///
+/// Returns `None` only when the value identifies nothing at all: absent, NULL,
+/// a non-UTF-8 blob, or a numeric.
+fn file_id_of(values: &[sqlite_core::Value], index: usize) -> Option<String> {
+    match values.get(index)? {
+        sqlite_core::Value::Text(s) => Some(s.clone()),
+        sqlite_core::Value::Blob(bytes) => String::from_utf8(bytes.clone()).ok(),
+        _ => None,
+    }
 }
 
 /// Project an archive's fields onto a [`BackupFile`].

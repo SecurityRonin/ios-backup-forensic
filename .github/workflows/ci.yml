@@ -34,7 +34,7 @@ jobs:
       msrv-check: test
       # Measured on this branch with the command the shared workflow runs:
       #   cargo llvm-cov --workspace --all-features --summary-only
-      #   -> TOTAL lines 90.46%
+      #   -> TOTAL lines 90.58%
       # The floor is floor(measured) = 89: a regression backstop at today's real
       # number, not a target nobody has met.
       #
@@ -96,6 +96,7 @@ jobs:
           python3 tools/mint_encrypted_backup.py /tmp/evilid --plain --evil-file-id
           python3 tools/mint_encrypted_backup.py /tmp/lieun --lie unencrypted
           python3 tools/mint_encrypted_backup.py /tmp/lieen --plain --lie encrypted
+          python3 tools/mint_encrypted_backup.py /tmp/blobid --plain --blob-file-id
           # Manifest.plist embeds a Date, and Manifest.db is a SQLite file whose
           # page padding is not byte-stable across sqlite3 builds. Compare the
           # content blobs and the keybag, which are what the crypto tests read.
@@ -106,6 +107,7 @@ jobs:
           diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/evilid tests/data/evil-file-id
           diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/lieun tests/data/lie-unencrypted
           diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/lieen tests/data/lie-encrypted
+          diff -r --exclude='Manifest.db' --exclude='*.plist' /tmp/blobid tests/data/blob-file-id
           echo "✓ fixtures reproduce from tools/mint_encrypted_backup.py"
 
   # A backup is untrusted, attacker-controllable input. This crate forbids

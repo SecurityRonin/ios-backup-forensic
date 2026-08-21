@@ -141,6 +141,22 @@ They exist because `IsEncrypted` is a claim and the bytes are the fact. A reader
 that trusts the flag refuses a readable backup in one direction and parses
 ciphertext as SQLite in the other. See ADR-0009.
 
+## `blob-file-id/` — synthetic, T3, adversarial
+
+- **Generator command:**
+
+  ```bash
+  python3 tools/mint_encrypted_backup.py tests/data/blob-file-id --plain --blob-file-id
+  ```
+
+- The first file's `fileID` is stored as a **BLOB** rather than TEXT. Legal:
+  `Manifest.db` declares the column `TEXT`, but SQLite enforces affinity, not
+  type.
+- **Consumed by:** `core/tests/row_loss.rs`.
+
+It exists because a reader matching only `Value::Text` drops such a row —
+silently, at the collection stage, which this crate did until 2026-08-21.
+
 ### A note on padding
 
 The generator pads with **PKCS#7**, not zeros. That is what iOS actually writes,

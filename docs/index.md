@@ -4,6 +4,7 @@ Native, read-only, panic-free reading of iOS device backups — encrypted ones
 included.
 
 - **[Purpose & Scope](PRD.md)** — what this is for, and what it deliberately is not.
+- **[Implementation census](implementation-census.md)** — how we compare with eleven independent implementations, and the three defects it found in ours.
 - **[Validation](validation.md)** — what correctness rests on, tier by tier, and the gap that is still open.
 - **[Decisions](decisions/0001-reader-analyzer-two-crate-split.md)** — the ADRs.
 - **[Test data](https://github.com/SecurityRonin/ios-backup-forensic/blob/main/tests/data/README.md)** — fixture provenance.

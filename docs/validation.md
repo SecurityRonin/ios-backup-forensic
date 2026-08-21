@@ -17,6 +17,7 @@ what it does not yet rest on.
 | Format rules (keybag, KDF, key unwrap, IV, prefixes) | Cross-read against `iphone-dataprotection` via datatags/mount-ios-backup — agrees rule for rule | **T2** |
 | Production KDF parameters | Real backup: 10,000,000 + 10,000 rounds, wrong password correctly rejected | **T2** |
 | `fileID` path safety | Cross-read against MVT — defect found and fixed (ADR-0008) | **T2** |
+| Format rules vs 11 independent implementations | Source cross-read, lineage-diverse corpus — see [census](implementation-census.md) | **T2** |
 | **End-to-end decrypt of real evidence** | **not yet performed** | **gap** |
 
 ## T1 — third party authored artifact *and* answer key
@@ -187,6 +188,20 @@ Keeping *both* signals is what distinguishes three states MVT's parse-probe
 collapses into two: encrypted, corrupt, and declared-wrong. A manifest that will
 not parse and carries no keybag is damaged, not locked.
 
+### Census against the wider population
+
+[`implementation-census.md`](implementation-census.md) records a comparison
+against eleven implementations chosen for lineage diversity, enumerated by two
+differently-shaped instruments. It agrees with us on every keybag, KDF and
+key-unwrap decision, and it found **three defects in our code**, all of the
+refusal-counted-as-zero family: path traversal via `fileID`, an absent `Size`
+read as zero, and manifest rows dropped silently for a BLOB `fileID`.
+
+The census states its own limits, and two matter here: it is a **floor, not a
+census** (every query hit the API's 60-result page cap), and its regex matrix
+produced a **false zero** for a Perl implementation that does implement the KDF.
+The agreements rest on reading source, not on that matrix.
+
 ## Controls — evidence the tests can fail
 
 A check that has never failed is not known to work.
@@ -251,7 +266,7 @@ This is the largest outstanding gap in fleet compliance for these crates.
 
 ## Coverage
 
-90.46% line coverage (`cargo llvm-cov --workspace --all-features`), against
+90.58% line coverage (`cargo llvm-cov --workspace --all-features`), against
 ADR-0008's 100% requirement for a `*-core`/`*-forensic` pair. The CI gate is a
 floor at the measured 89 — a regression backstop, not the standard met.
 

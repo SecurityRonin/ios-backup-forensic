@@ -34,5 +34,5 @@ pub mod nskeyed;
 pub use backup::{Backup, EncryptionState};
 pub use credentials::{Credentials, Password};
 pub use error::Error;
-pub use manifest::{BackupFile, FileKind};
+pub use manifest::{BackupFile, FileKind, ManifestFiles};
 pub use metadata::BackupMetadata;

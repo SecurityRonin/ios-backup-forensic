@@ -1,8 +1,8 @@
 //! A manifest row must never disappear without being counted.
 //!
 //! Found while comparing against the population of iOS-backup implementations
-//! on GitHub. `Manifest.db` declares `fileID TEXT PRIMARY KEY`, but SQLite has
-//! column **affinity**, not type enforcement — a BLOB in that column is legal
+//! on GitHub. `Manifest.db` declares `fileID TEXT PRIMARY KEY`, but `SQLite`
+//! has column **affinity**, not type enforcement — a BLOB there is legal
 //! and round-trips fine. A reader that matches only `Value::Text` therefore
 //! drops the row.
 //!
@@ -85,14 +85,13 @@ fn a_row_that_cannot_be_identified_is_counted_not_silently_dropped() {
 fn build_manifest_with_an_unreadable_row() -> Vec<u8> {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("m.db");
-    let conn = rusqlite_shim::create(&path);
-    drop(conn);
+    sqlite_writer::create(&path);
     std::fs::read(&path).unwrap()
 }
 
-/// Building a SQLite file without a SQLite writer dependency: shell out to the
-/// `sqlite3` binary, which every developer and CI runner has.
-mod rusqlite_shim {
+/// Building a `SQLite` file without taking a writer dependency: shell out to
+/// the `sqlite3` binary, which every developer and CI runner has.
+mod sqlite_writer {
     pub fn create(path: &std::path::Path) {
         let sql = r"
 CREATE TABLE Files (fileID TEXT PRIMARY KEY, domain TEXT, relativePath TEXT, flags INTEGER, file BLOB);

@@ -12,6 +12,7 @@ nav:
   - Home: index.md
   - Purpose & Scope: PRD.md
   - Validation: validation.md
+  - Implementation census: implementation-census.md
   - Decisions:
       - Reader/analyzer split: decisions/0001-reader-analyzer-two-crate-split.md
       - sqlite-core reads the manifest: decisions/0002-sqlite-core-reads-the-manifest.md

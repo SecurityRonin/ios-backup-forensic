@@ -59,6 +59,7 @@ pub struct Backup {
     /// `Some` only for an encrypted backup that was successfully unlocked.
     class_keys: Option<ClassKeys>,
     encryption: EncryptionState,
+    unreadable_rows: usize,
 }
 
 /// A backup never renders its key material.
@@ -68,6 +69,7 @@ impl core::fmt::Debug for Backup {
             .field("root", &self.root)
             .field("files", &self.files.len())
             .field("encryption", &self.encryption)
+            .field("unreadable_rows", &self.unreadable_rows)
             .field("unlocked", &self.class_keys.is_some())
             .finish_non_exhaustive()
     }
@@ -134,14 +136,15 @@ impl Backup {
             (None, raw_manifest_db)
         };
 
-        let files = manifest::read_files(manifest_bytes)?;
+        let read = manifest::read_files(manifest_bytes)?;
 
         Ok(Self {
             root: path.to_path_buf(),
             metadata: manifest.metadata,
-            files,
+            files: read.files,
             class_keys,
             encryption,
+            unreadable_rows: read.unreadable,
         })
     }
 
@@ -211,6 +214,18 @@ impl Backup {
     #[must_use]
     pub fn metadata(&self) -> &BackupMetadata {
         &self.metadata
+    }
+
+    /// How many `Files` rows could not be identified and are therefore absent
+    /// from [`Self::files`].
+    ///
+    /// Non-zero means the tree is **smaller than the manifest it came from**.
+    /// The count exists so that shortfall is never silent: a reader returning
+    /// only the rows it could read, without saying how many it could not, has
+    /// quietly redefined the evidence.
+    #[must_use]
+    pub fn unreadable_rows(&self) -> usize {
+        self.unreadable_rows
     }
 
     /// Every entry in the manifest, in the order the manifest records them.
