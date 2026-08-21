@@ -1,7 +1,17 @@
 # 5. A credentials seam for mounting tools
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0010](0010-mounting-goes-through-the-vfs-tree-seam.md)
 - **Date:** 2026-08-21
+
+> **[WAS-UNVERIFIED — CLOSED 2026-08-21]** The Context below states that
+> `4n6mount` reaches logical containers through `disk_forensic::logical::open`.
+> It does not: `disk-forensic` is not a dependency of `4n6mount` at all. The
+> claim was never observed, and the upstream change this ADR specifies would
+> have given `4n6mount` nothing.
+>
+> The *reasoning* here survives — credentials belong in the call not the
+> address, and a backup is not an `EncryptionLayer` — and ADR-0010 keeps it. The
+> route is what was wrong. Kept unedited below as the record of the error.
 
 ## Context
 

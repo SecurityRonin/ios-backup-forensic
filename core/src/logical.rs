@@ -2,22 +2,26 @@
 //!
 //! An iOS backup holds a captured file tree, not a block device: there is no
 //! partition table and no filesystem to walk, so it belongs with AD1 and
-//! AFF4-Logical rather than with EWF or VMDK. The fleet reaches those through
-//! `disk_forensic::logical::open`, which lists entries and reads one by index.
+//! AFF4-Logical rather than with EWF or VMDK.
 //!
-//! This module presents exactly that shape, so wiring a backup into the
-//! abstraction is an adapter of a few lines rather than a new code path in
-//! every consumer — which is the format special-casing ADR-0011 exists to
-//! prevent.
+//! This module flattens the manifest into an entry list plus read-by-index — the
+//! shape any browser or mounting front-end wants — so a consumer needs an
+//! adapter rather than a new code path, which is the format special-casing
+//! ADR-0011 exists to prevent.
 //!
-//! # The one thing that does not fit
+//! # What this is not
 //!
-//! `disk_forensic::logical::open(path)` takes no credentials, so it cannot open
-//! an encrypted backup. That is a gap in the abstraction rather than a quirk of
-//! this format: the same function already turns away an encrypted AFF4 with
-//! *"needs a password"*. [`LogicalView::open`] therefore takes [`Credentials`],
-//! and ADR-0005 records the small upstream change that lets `logical::open`
-//! carry them.
+//! An earlier version of these docs said the fleet reaches logical containers
+//! through `disk_forensic::logical::open` and that this module was shaped to
+//! match it. That was never true of the consumer it named: `4n6mount` does not
+//! depend on `disk-forensic`. Mounting goes through `forensic_vfs::TreeOpen`,
+//! implemented behind this crate's `vfs` feature — see
+//! [ADR-0010](https://github.com/SecurityRonin/ios-backup-forensic/blob/main/docs/decisions/0010-mounting-goes-through-the-vfs-tree-seam.md),
+//! which supersedes ADR-0005.
+//!
+//! [`LogicalView::open`] takes [`Credentials`] because an encrypted backup
+//! cannot be listed without them — the entry list itself lives in an encrypted
+//! `Manifest.db`.
 
 use std::path::Path;
 
