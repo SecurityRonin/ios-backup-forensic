@@ -18,6 +18,24 @@ allow = [
 multiple-versions = "deny"
 wildcards = "deny"
 
+# syn is mid-migration from 2 to 3, and the two proc-macro crates that pull it
+# sit on opposite sides — both already at their latest release:
+#
+#   syn 2.0.119 <- zeroize_derive 1.5.0 <- zeroize 1.9.0 <- ios-backup-core
+#   syn 3.0.3   <- thiserror-impl 2.0.20 <- thiserror 2.0.20 <- (us, forensic-vfs)
+#
+# `cargo update` cannot unify them: this is upstream's transition to finish.
+# Both are proc-macros, so the duplicate costs build time and ships no code.
+#
+# Self-retiring: cargo-deny reports an "unmatched skip configuration" as a bans
+# FAILURE, so the day zeroize_derive moves to syn 3 this entry stops matching and
+# CI goes red pointing at this line. Delete it then — the expiry is enforced, not
+# merely intended. (Verified by pointing the skip at a version nothing resolves
+# to and watching `bans` fail.)
+[[bans.skip]]
+crate = "syn@2"
+reason = "zeroize_derive 1.5.0 (latest) has not migrated to syn 3; thiserror-impl 2.0.20 has"
+
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
