@@ -1,17 +1,26 @@
-# release-plz owns crates.io publishing + changelogs + per-crate version bumps for
-# this workspace's library crates:
-#   dmg-core, dmg-forensic
+# release-plz owns changelogs + per-crate version bumps for this workspace's
+# library crates:
+#   ios-backup-core, ios-backup-forensic
 # It runs on pushes to main (see .github/workflows/release-plz.yml):
 #   - `release-pr`  opens a human-reviewed version-bump PR (conventional commits)
-#   - `release`     publishes any crate whose Cargo.toml version is ahead of
-#                   crates.io, in inter-crate dependency order, and tags it
+#   - `release`     tags a crate whose Cargo.toml version is ahead of crates.io
 #
-# Members that do not publish (test/CLI/GUI/integration helpers) each carry a
-# release=false + publish=false override below, mirroring their Cargo.toml.
+# This file arrived as a copy of dmg-forensic's and still named `dmg-core`,
+# `dmg-forensic` and a `dmg-forensic-cli` member that does not exist here. That
+# typo is the only reason the first push did not publish: release-plz aborted on
+# the unknown override while CARGO_REGISTRY_TOKEN was live in the environment.
 
 [workspace]
-# Per-package git tags, e.g. `dmg-core-v0.1.1`. `v[0-9]*` binary triggers never
-# match these — see the fleet release standard.
+# crates.io publishing stays OFF until the pre-publish gate is actually met --
+# ADR-0012 wants a fuzz target per parsed structure and this workspace has none,
+# and docs/validation.md still records an open validation gap. A publish is a
+# one-way door (the name is taken, and the delete window is 72h), so it waits for
+# a deliberate decision rather than riding along with the next push to main.
+#
+# To publish: set this to true, confirm the version, push.
+publish = false
+# Per-package git tags, e.g. `ios-backup-core-v0.1.1`. `v[0-9]*` binary triggers
+# never match these — see the fleet release standard.
 git_tag_name = "{{ package }}-v{{ version }}"
 git_tag_enable = true
 git_release_enable = false
@@ -39,9 +48,3 @@ commit_parsers = [
     { message = "^chore", skip = true },
     { message = "^.*", group = "other" },
 ]
-
-# Non-publishing members (publish = false in their own Cargo.toml):
-[[package]]
-name = "dmg-forensic-cli"
-release = false
-publish = false

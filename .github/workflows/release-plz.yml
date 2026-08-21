@@ -1,17 +1,17 @@
 name: release-plz
 
-# Owns crates.io publishing + changelogs + version bumps for this workspace's
-# library crates:
-#   dmg-core, dmg-forensic
-# Configuration lives in release-plz.toml.
+# Owns changelogs + version bumps for this workspace's library crates:
+#   ios-backup-core, ios-backup-forensic
+# Configuration lives in release-plz.toml, which currently sets `publish = false`
+# -- so this workflow bumps and tags, and does NOT upload to crates.io.
 #
 # On every push to main:
 #   - release-plz-pr:      opens/updates a human-reviewed version-bump PR
-#   - release-plz-release: publishes any crate whose version is ahead of crates.io
+#   - release-plz-release: tags any crate whose version is ahead of crates.io
 #                          (release-plz resolves inter-crate dependency order)
 #
 # Binary distribution (if a release.yml is added) triggers on a manual `v[0-9]*` tag;
-# release-plz's per-crate tags (`dmg-core-v*`) never match it.
+# release-plz's per-crate tags (`ios-backup-core-v*`) never match it.
 
 permissions:
   contents: write
