@@ -166,6 +166,12 @@ def main() -> int:
     )
     parser.add_argument("--seed", type=int, default=20260821)
     parser.add_argument(
+        "--evil-file-id",
+        action="store_true",
+        help="mint the first file with a path-traversing fileID, to prove a "
+             "reader cannot be walked out of the backup directory",
+    )
+    parser.add_argument(
         "--omit-size",
         action="store_true",
         help="mint the first file with NO Size key in its metadata, so a reader "
@@ -237,6 +243,9 @@ def main() -> int:
 
     for index, (domain, relative_path, payload) in enumerate(CONTENT):
         file_id = hashlib.sha1(f"{domain}-{relative_path}".encode("utf-8")).hexdigest()
+        if args.evil_file_id and index == 0:
+            # Not a digest at all: a relative path climbing out of the backup.
+            file_id = "../../../../../../../../etc/passwd"
         protection_class = CLASSES[index % len(CLASSES)]
 
         if encrypted:
@@ -253,6 +262,10 @@ def main() -> int:
                            FLAG_FILE, mtime, omit_size=args.omit_size and index == 0)),
         )
 
+        if args.evil_file_id and index == 0:
+            # No blob written: the point is whether the reader RESOLVES the
+            # path, not whether something happens to be there.
+            continue
         blob_dir = out / file_id[:2]
         blob_dir.mkdir(exist_ok=True)
         (blob_dir / file_id).write_bytes(blob)
