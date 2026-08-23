@@ -137,9 +137,9 @@ checksum = "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223"
 
 [[package]]
 name = "forensic-vfs"
-version = "0.7.2"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0ddd42a9ee486369f4a16bec780a21faa546a07a31e9950522791c286c64fb7"
+checksum = "122f13587c8626d35e40917519b9a57563de6dc0e80f371165e3e538581802e0"
 dependencies = [
  "forensicnomicon-core",
  "state-history-forensic",
@@ -430,9 +430,9 @@ dependencies = [
 
 [[package]]
 name = "sqlite-core"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "deeef5d7a7969c784aad7353f0f5bd2963645f828ca3bc8fffbef23db5b476a7"
+checksum = "763d53612ff5a21c07fe0adac6a4b79b9e1eee7b2a2863f8613eed11479cce81"
 dependencies = [
  "aes",
  "cbc",
