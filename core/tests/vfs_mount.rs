@@ -206,3 +206,112 @@ fn a_backup_reports_no_deleted_nodes_and_no_unallocated_space() {
         0
     );
 }
+
+#[test]
+fn the_mount_describes_itself_without_inventing_a_geometry() {
+    let fs = IosBackupOpen
+        .open(&fixture("plain-backup"), &NoCredentials)
+        .unwrap();
+
+    assert_eq!(fs.kind().as_str(), "ios-backup");
+    assert_eq!(fs.timestamp_zone(), forensic_vfs::TimeZonePolicy::Utc);
+
+    // A backup is a directory of files, not a block device. Reporting a sector
+    // size would invent a geometry the evidence does not have, and a consumer
+    // could compute offsets from it.
+    let s = fs.sector_sizes();
+    assert_eq!((s.logical, s.physical, s.cluster_or_block), (0, 0, 0));
+
+    let root = fs.meta(fs.root()).unwrap();
+    assert_eq!(root.kind, NodeKind::Dir);
+    assert_eq!(root.allocated, forensic_vfs::Allocation::Allocated);
+}
+
+#[test]
+fn an_id_this_mount_did_not_issue_is_refused_rather_than_indexed() {
+    let fs = IosBackupOpen
+        .open(&fixture("plain-backup"), &NoCredentials)
+        .unwrap();
+
+    // A FileId shape from some other filesystem is not a node here. Refusing is
+    // the point: silently treating it as an index would read a neighbouring
+    // node's metadata and report it as this one's.
+    assert!(fs.meta(FileId::NtfsRef { entry: 5, seq: 2 }).is_err());
+
+    // An Opaque id past the end of the tree.
+    assert!(fs.meta(FileId::Opaque(u64::MAX)).is_err());
+    assert!(fs.read_dir(FileId::Opaque(u64::MAX)).is_err());
+}
+
+#[test]
+fn reading_something_that_is_not_file_content_yields_no_bytes() {
+    let fs = IosBackupOpen
+        .open(&fixture("plain-backup"), &NoCredentials)
+        .unwrap();
+    let mut buf = [0u8; 64];
+
+    // A directory has no content blob.
+    assert_eq!(
+        fs.read_at(fs.root(), forensic_vfs::StreamId::Default, 0, &mut buf)
+            .unwrap(),
+        0
+    );
+
+    // A backup has no alternate data streams; asking for one is empty, not an
+    // error, so a consumer that probes every stream does not fail the mount.
+    assert_eq!(
+        fs.read_at(fs.root(), forensic_vfs::StreamId::ResourceFork, 0, &mut buf)
+            .unwrap(),
+        0
+    );
+
+    // read_link on a non-symlink is empty rather than a guess.
+    assert!(fs.read_link(fs.root(), 4096).unwrap().is_empty());
+}
+
+#[test]
+fn a_credential_that_is_not_a_password_is_not_treated_as_one() {
+    // A keybag has no use for volume key material. Feeding raw bytes in as a
+    // passphrase would report a WRONG PASSWORD for a credential that was never
+    // a password — a diagnosis that sends an examiner to re-check a password
+    // they never supplied.
+    struct KeyBytesOnly;
+    impl CredentialSource for KeyBytesOnly {
+        fn credentials_for(&self, _s: EncryptionScheme, _t: &str) -> Vec<Credential> {
+            vec![
+                Credential::KeyBytes(vec![0u8; 32]),
+                Credential::RecoveryKey("1234-5678".to_string()),
+            ]
+        }
+    }
+
+    match IosBackupOpen.open(&fixture("encrypted-backup"), &KeyBytesOnly) {
+        Err(VfsError::NeedCredentials { .. }) => {}
+        other => panic!(
+            "expected NeedCredentials with no password offered, got {:?}",
+            other.map(|_| "Ok(fs)")
+        ),
+    }
+}
+
+#[test]
+fn a_damaged_backup_is_a_decode_failure_not_a_credential_prompt() {
+    // The distinction the error mapping exists to preserve: corruption must not
+    // read as "locked", or an examiner goes looking for a password that would
+    // not help.
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::write(tmp.path().join("Manifest.plist"), b"not a plist at all").unwrap();
+    std::fs::write(tmp.path().join("Manifest.db"), b"not a database").unwrap();
+
+    assert!(matches!(
+        IosBackupOpen.probe(tmp.path()),
+        Confidence::Yes { .. }
+    ));
+    match IosBackupOpen.open(tmp.path(), &NoCredentials) {
+        Err(VfsError::Decode { layer, .. }) => assert_eq!(layer, "ios-backup"),
+        other => panic!(
+            "damage must not report as a credential problem, got {:?}",
+            other.map(|_| "Ok(fs)")
+        ),
+    }
+}
