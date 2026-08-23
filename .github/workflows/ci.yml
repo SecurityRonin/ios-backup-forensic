@@ -18,7 +18,7 @@ env:
 
 jobs:
   ci:
-    uses: SecurityRonin/fleet-ci/.github/workflows/rust-ci.yml@619094ad54edc586f5c2733358e00326b30790bd
+    uses: SecurityRonin/fleet-ci/.github/workflows/rust-ci.yml@85c7263e5e1a25a090f602419ac27f87aeb1d1e3
     with:
       # This crate is pure Rust with no platform-specific paths, but nothing has
       # been *shown* to pass on macOS or Windows yet. Gating on an untested
