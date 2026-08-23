@@ -30,6 +30,8 @@ pub mod logical;
 pub mod manifest;
 pub mod metadata;
 pub mod nskeyed;
+#[cfg(feature = "vfs")]
+pub mod vfs;
 
 pub use backup::{Backup, EncryptionState};
 pub use credentials::{Credentials, Password};

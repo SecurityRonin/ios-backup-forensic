@@ -41,7 +41,7 @@ safe-read = "0.2"
 # crate over rusqlite/libsqlite3-sys is binding fleet policy (ADR-0010), and it is
 # also the safer choice here — a native, panic-free, read-only reader over
 # attacker-controllable bytes, with no C dependency.
-sqlite-core = "0.11"
+sqlite-core = "0.12"
 
 # KNOWLEDGE leaf: the normalized report model (Finding/Observation/Severity).
 forensicnomicon = "1"
