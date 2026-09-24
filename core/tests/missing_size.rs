@@ -15,7 +15,7 @@
 
 use std::path::PathBuf;
 
-use ios_backup_core::{Backup, Credentials};
+use ios_backup::{Backup, Credentials};
 
 fn fixture(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -67,7 +67,7 @@ fn an_encrypted_file_with_no_recorded_size_falls_back_to_stripping_padding() {
     // whole padded block instead of its four real bytes.
     let mut backup = Backup::open_with(
         &fixture("no-size-encrypted"),
-        &Credentials::password(ios_backup_core::Password::new("test-password-1234")),
+        &Credentials::password(ios_backup::Password::new("test-password-1234")),
     )
     .unwrap();
 
@@ -91,7 +91,7 @@ fn an_encrypted_file_with_a_recorded_size_ignores_padding_entirely() {
     // recorded 32 is right; a reader trusting the block count would emit 48.
     let mut backup = Backup::open_with(
         &fixture("encrypted-backup"),
-        &Credentials::password(ios_backup_core::Password::new("test-password-1234")),
+        &Credentials::password(ios_backup::Password::new("test-password-1234")),
     )
     .unwrap();
     let entry = backup

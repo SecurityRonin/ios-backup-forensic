@@ -29,7 +29,7 @@
 
 use std::path::PathBuf;
 
-use ios_backup_core::{Backup, Credentials, Error};
+use ios_backup::{Backup, Credentials, Error};
 
 fn fixture(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -131,7 +131,7 @@ fn an_uppercase_digest_still_resolves() {
 
 /// A `BackupFile` carrying `file_id`, built through the public reader so the
 /// test exercises the same construction path production does.
-fn entry_with_file_id(file_id: &str) -> ios_backup_core::BackupFile {
+fn entry_with_file_id(file_id: &str) -> ios_backup::BackupFile {
     let mut backup = Backup::open_with(&fixture("plain-backup"), &Credentials::none()).unwrap();
     let mut entry = backup.files()[0].clone();
     file_id.clone_into(&mut entry.file_id);

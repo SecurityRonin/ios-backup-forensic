@@ -16,7 +16,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use ios_backup_core::crypto;
+use ios_backup::crypto;
 
 fn unhex(s: &str) -> Vec<u8> {
     hex::decode(s).expect("test vector is valid hex")

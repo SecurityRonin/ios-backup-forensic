@@ -4,7 +4,7 @@
 //! malformed archive can point a reference at anything — including itself. The
 //! resolver must terminate and stay in bounds on input it did not write.
 
-use ios_backup_core::nskeyed::Archive;
+use ios_backup::nskeyed::Archive;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

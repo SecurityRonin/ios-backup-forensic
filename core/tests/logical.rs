@@ -14,8 +14,8 @@
 
 use std::path::PathBuf;
 
-use ios_backup_core::logical::LogicalView;
-use ios_backup_core::{Credentials, Error, Password};
+use ios_backup::logical::LogicalView;
+use ios_backup::{Credentials, Error, Password};
 
 const PASSWORD: &str = "test-password-1234";
 
@@ -118,7 +118,7 @@ fn a_domain_or_path_containing_a_slash_still_yields_one_entry_per_row() {
     // it does not split or synthesise intermediate directories.
     let view = LogicalView::open(&fixture("plain-backup"), &Credentials::none()).unwrap();
     let backup =
-        ios_backup_core::Backup::open_with(&fixture("plain-backup"), &Credentials::none()).unwrap();
+        ios_backup::Backup::open_with(&fixture("plain-backup"), &Credentials::none()).unwrap();
 
     assert_eq!(view.entries().len(), backup.files().len());
 }

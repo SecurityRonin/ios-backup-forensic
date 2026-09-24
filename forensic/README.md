@@ -11,7 +11,7 @@ implement the keybag reports `Manifest.db: file is not a database` and stops. Th
 evidence is intact and unreadable.
 
 ```rust
-use ios_backup_core::{Backup, Credentials, Password};
+use ios_backup::{Backup, Credentials, Password};
 
 let mut backup = Backup::open_with(
     std::path::Path::new("/evidence/00008110-001641201A29401E"),
@@ -22,7 +22,7 @@ println!("iOS {:?}, {} files", backup.metadata().product_version, backup.files()
 
 let sms = backup.find("HomeDomain", "Library/SMS/sms.db").unwrap().clone();
 std::fs::write("sms.db", backup.read(&sms)?)?;
-# Ok::<(), ios_backup_core::Error>(())
+# Ok::<(), ios_backup::Error>(())
 ```
 
 ```text

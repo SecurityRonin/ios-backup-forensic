@@ -22,7 +22,7 @@
 
 use std::path::PathBuf;
 
-use ios_backup_core::{Backup, Credentials, Error, Password};
+use ios_backup::{Backup, Credentials, Error, Password};
 
 const PASSWORD: &str = "test-password-1234";
 

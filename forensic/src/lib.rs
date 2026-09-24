@@ -1,6 +1,6 @@
 //! `ios-backup-forensic` — anomaly auditor for iOS device backups.
 //!
-//! Reads a backup through [`ios_backup_core`] and emits
+//! Reads a backup through [`ios_backup`] and emits
 //! [`forensicnomicon::report::Finding`]s. It states what is *observable in the
 //! backup* and stops there: a backup can show that a domain is absent, and
 //! cannot show why. Exclusion, an app that was never installed, and iOS
@@ -8,7 +8,7 @@
 //! the absence and leaves the question open.
 //!
 //! ```no_run
-//! use ios_backup_core::{Backup, Credentials, Password};
+//! use ios_backup::{Backup, Credentials, Password};
 //!
 //! let backup = Backup::open_with(
 //!     std::path::Path::new("/evidence/00008110-001641201A29401E"),
@@ -17,7 +17,7 @@
 //! for finding in ios_backup_forensic::audit(&backup) {
 //!     println!("{} — {}", finding.code, finding.note);
 //! }
-//! # Ok::<(), ios_backup_core::Error>(())
+//! # Ok::<(), ios_backup::Error>(())
 //! ```
 
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
@@ -31,7 +31,7 @@ pub use kinds::AnomalyKind;
 use std::collections::BTreeSet;
 
 use forensicnomicon::report::{Finding, Observation, Source};
-use ios_backup_core::{Backup, FileKind};
+use ios_backup::{Backup, FileKind};
 
 /// This analyzer's name and version, recorded on every finding so a report can
 /// be reproduced against the exact code that produced it.

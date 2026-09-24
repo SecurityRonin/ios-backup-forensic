@@ -17,8 +17,8 @@
 
 use std::path::PathBuf;
 
-use ios_backup_core::keybag::{KeyBag, KeyBagKind};
-use ios_backup_core::{Backup, Credentials, Error, Password};
+use ios_backup::keybag::{KeyBag, KeyBagKind};
+use ios_backup::{Backup, Credentials, Error, Password};
 
 /// The backup under test, or `None` when the env gate is unset.
 fn backup_dir() -> Option<PathBuf> {
