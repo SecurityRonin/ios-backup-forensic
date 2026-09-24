@@ -9,7 +9,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use ios_backup_core::keybag::{KeyBag, KeyBagKind};
+use ios_backup::keybag::{KeyBag, KeyBagKind};
 
 /// Assemble a keybag from `(tag, value)` pairs in the documented TLV encoding:
 /// 4-byte ASCII tag, 4-byte big-endian length, then that many bytes of value.

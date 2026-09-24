@@ -14,7 +14,7 @@
 
 use std::fs;
 
-use ios_backup_core::{Backup, Credentials, Password};
+use ios_backup::{Backup, Credentials, Password};
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

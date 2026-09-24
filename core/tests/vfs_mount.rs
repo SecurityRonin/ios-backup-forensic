@@ -13,7 +13,7 @@ use forensic_vfs::{
     Confidence, Credential, CredentialSource, EncryptionScheme, FileId, FileSystem, NoCredentials,
     NodeKind, TreeOpen, VfsError,
 };
-use ios_backup_core::vfs::IosBackupOpen;
+use ios_backup::vfs::IosBackupOpen;
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

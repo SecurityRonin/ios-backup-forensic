@@ -5,9 +5,9 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use ios_backup_core::crypto::{self, ClassKeys};
-use ios_backup_core::nskeyed::Archive;
-use ios_backup_core::{Backup, Credentials, Error};
+use ios_backup::crypto::{self, ClassKeys};
+use ios_backup::nskeyed::Archive;
+use ios_backup::{Backup, Credentials, Error};
 
 // --------------------------------------------------------------- NSKeyedArchiver
 
@@ -133,7 +133,7 @@ fn a_backup_marked_encrypted_with_no_keybag_is_reported_precisely() {
 
     let err = Backup::open_with(
         dir.path(),
-        &Credentials::password(ios_backup_core::Password::new("pw")),
+        &Credentials::password(ios_backup::Password::new("pw")),
     )
     .unwrap_err();
 

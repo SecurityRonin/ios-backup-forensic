@@ -12,6 +12,10 @@ categories.workspace = true
 keywords.workspace = true
 readme = "README.md"
 
+# Import as `ios_backup` (the ADR-0009 short form); the package name keeps `-core`.
+[lib]
+name = "ios_backup"
+
 [features]
 default = []
 # Surface a backup as a filesystem through the fleet VFS abstraction, so a

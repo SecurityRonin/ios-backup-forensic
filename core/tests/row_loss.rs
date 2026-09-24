@@ -20,7 +20,7 @@
 
 use std::path::PathBuf;
 
-use ios_backup_core::{Backup, Credentials};
+use ios_backup::{Backup, Credentials};
 
 fn fixture(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

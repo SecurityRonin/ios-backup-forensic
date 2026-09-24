@@ -4,7 +4,7 @@
 //! encrypted backup it is decrypted in memory before it is read — so the reader
 //! meets arbitrary bytes whenever a password is wrong or a page is damaged.
 
-use ios_backup_core::manifest::read_files;
+use ios_backup::manifest::read_files;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

@@ -6,7 +6,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use ios_backup_core::{Credentials, Error, Password};
+use ios_backup::{Credentials, Error, Password};
 
 #[test]
 fn a_password_is_the_bytes_it_was_given() {
